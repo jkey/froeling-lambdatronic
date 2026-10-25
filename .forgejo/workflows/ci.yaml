@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: arm64
+    container:
+      # uv + Python 3.13 vorinstalliert; kein node -> kein actions/checkout.
+      image: ghcr.io/astral-sh/uv:python3.13-bookworm
+    steps:
+      - name: Repo holen
+        run: |
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.seiler.onl/${{ github.repository }}.git" /src
+          cd /src && git checkout "${{ github.sha }}"
+      - name: Abhängigkeiten
+        working-directory: /src
+        run: uv sync --locked
+      - name: Ruff
+        working-directory: /src
+        run: uv run ruff check && uv run ruff format --check
+      - name: Mypy
+        working-directory: /src
+        run: uv run mypy
+      - name: Tests
+        working-directory: /src
+        run: uv run pytest

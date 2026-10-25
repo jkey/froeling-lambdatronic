@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "froeling-lambdatronic"
+version = "0.1.0"
+description = "Async client for Fröling Lambdatronic 3200 boilers (Modbus TCP and Fröling Connect)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Kurt Seiler", email = "kurt@seiler.onl" }]
+requires-python = ">=3.13"
+dependencies = ["aiohttp>=3.10"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: AsyncIO",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Home Automation",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Source = "https://git.seiler.onl/kurt/froeling-lambdatronic"
+
+[dependency-groups]
+dev = [
+  "aioresponses>=0.7.8",
+  "mypy>=1.13",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=6.0",
+  "ruff>=0.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/froeling_lambdatronic"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "--cov=froeling_lambdatronic --cov-report=term-missing --cov-fail-under=95"
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["aioresponses", "aioresponses.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+exclude = ["docs/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC", "PT", "ANN", "C4", "PL"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR0915", "ANN401"]
