@@ -24,7 +24,8 @@ classifiers = [
 ]
 
 [project.urls]
-Source = "https://git.seiler.onl/kurt/froeling-lambdatronic"
+Source = "https://github.com/jkey/froeling-lambdatronic"
+Issues = "https://github.com/jkey/froeling-lambdatronic/issues"
 
 [dependency-groups]
 dev = [
