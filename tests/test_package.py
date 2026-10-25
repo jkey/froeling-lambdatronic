@@ -46,6 +46,6 @@ def test_public_api() -> None:
         "boiler_state_text",
         "HEATING_CIRCUIT_MODES",
     }
-    assert expected <= set(froeling_lambdatronic.__all__)
+    assert set(froeling_lambdatronic.__all__) == expected
     for name in expected:
         assert hasattr(froeling_lambdatronic, name)

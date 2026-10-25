@@ -4,6 +4,9 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,7 +16,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Version des Tags muss zur Paketversion passen
-        run: test "v$(uv version --short)" = "${GITHUB_REF_NAME}"
+        run: test "v$(uv run python -c "import froeling_lambdatronic as f; print(f.__version__)")" = "${GITHUB_REF_NAME}"
       - run: uv sync --locked && uv run pytest
       - run: uv build
       - uses: actions/upload-artifact@v4

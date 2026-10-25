@@ -38,13 +38,21 @@ asyncio.run(main())
 ```
 
 ```python
+import asyncio
+
 import aiohttp
+
 from froeling_lambdatronic import FroelingConnectClient, OperatingMode
 
-async with aiohttp.ClientSession() as session:
-    cloud = FroelingConnectClient(session, "user@example.com", "secret")
-    facility = (await cloud.get_facilities())[0]
-    await cloud.set_operating_mode(facility.facility_id, OperatingMode.DOMESTIC_HOT_WATER)
+
+async def main() -> None:
+    async with aiohttp.ClientSession() as session:
+        cloud = FroelingConnectClient(session, "user@example.com", "secret")
+        facility = (await cloud.get_facilities())[0]
+        await cloud.set_operating_mode(facility.facility_id, OperatingMode.DOMESTIC_HOT_WATER)
+
+
+asyncio.run(main())
 ```
 
 Writing is validated before sending (writable register, range, step) and verified by reading the
@@ -54,7 +62,7 @@ register back. The gateway must not be polled by other clients at the same time.
 
 ```bash
 uv sync
-uv run ruff check && uv run mypy && uv run pytest
+uv run ruff check && uv run ruff format --check . && uv run mypy && uv run pytest
 ```
 
 Register documentation: Fröling "Kommunikationsprotokoll ModBus Lambdatronic 3200", B1200522.
