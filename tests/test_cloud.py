@@ -24,6 +24,7 @@ from froeling_lambdatronic.cloud import (
 from froeling_lambdatronic.exceptions import (
     AuthenticationError,
     CloudParameterNotFoundError,
+    CommunicationError,
     ConnectionFailedError,
     RemoteControlDisabledError,
 )
@@ -176,9 +177,18 @@ async def test_login_server_error_and_network_error(env: Env) -> None:
         await down.login()
 
 
-async def test_login_with_malformed_token(env: Env) -> None:
-    env.state.add("POST", LOGIN, Reply(headers={"Authorization": "not-a-jwt"}))
-    with pytest.raises(AuthenticationError):
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Authorization": "not-a-jwt"},
+        {"Authorization": "a.bm90LWpzb24.c"},
+        {"Authorization": "a." + base64.urlsafe_b64encode(b"[1]").decode() + ".c"},
+    ],
+)
+async def test_login_without_usable_token(env: Env, headers: dict[str, str]) -> None:
+    env.state.add("POST", LOGIN, Reply(headers=headers))
+    with pytest.raises(CommunicationError):
         await env.client().login()
 
 
@@ -270,10 +280,14 @@ async def test_set_operating_mode_requires_remote_control(env: Env) -> None:
 async def test_expired_token_is_renewed_once(env: Env) -> None:
     login_ok(env.state)
     env.state.add("GET", FACILITIES, Reply(status=401))
-    login_ok(env.state)
+    renewed = token(USER) + "-renewed"
+    env.state.add("POST", LOGIN, Reply(payload={"userData": {}}, headers={"Authorization": renewed}))
     env.state.add("GET", FACILITIES, Reply(payload=[]))
     assert await env.client().get_facilities() == []
     assert len(env.state.received("POST", LOGIN)) == 2
+    first, retried = env.state.received("GET", FACILITIES)
+    assert first.headers["Authorization"] == token()
+    assert retried.headers["Authorization"] == renewed
     login_ok(env.state)
     env.state.add("GET", FACILITIES, Reply(status=401))
     login_ok(env.state)
@@ -295,3 +309,91 @@ async def test_request_errors(env: Env, monkeypatch: pytest.MonkeyPatch) -> None
     env.state.add("GET", FACILITIES, Reply(body="not json", content_type="text/plain"))
     with pytest.raises(ConnectionFailedError):
         await client.get_facilities()
+
+
+async def test_not_modified_on_get_is_communication_error(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", FACILITIES, Reply(status=304))
+    with pytest.raises(CommunicationError):
+        await env.client().get_facilities()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"facilityId": FACILITY},
+        [FACILITY],
+        [{"name": "ohne Id"}],
+        [{"facilityId": "abc"}],
+        [{"facilityId": None}],
+        [{"facilityId": FACILITY, "protocol3200Info": "PE1"}],
+        [{"facilityId": FACILITY, "protocol3200Info": {"productType": 7}}],
+    ],
+)
+async def test_malformed_facilities(env: Env, payload: Any) -> None:
+    login_ok(env.state)
+    env.state.add("GET", FACILITIES, Reply(payload=payload))
+    with pytest.raises(CommunicationError):
+        await env.client().get_facilities()
+
+
+@pytest.mark.parametrize(
+    "components",
+    [
+        {"type": "BOILER"},
+        ["BOILER"],
+        [{"type": "BOILER"}],
+        [{"type": "BOILER", "componentId": None}],
+    ],
+)
+async def test_malformed_component_list(env: Env, components: Any) -> None:
+    login_ok(env.state)
+    env.state.add("GET", COMPONENTS, Reply(payload=components))
+    with pytest.raises(CommunicationError):
+        await env.client().get_boiler_state(FACILITY)
+
+
+def _with_config(config: Any) -> dict[str, Any]:
+    return {"componentId": "1_100", "type": "BOILER", "topView": {"configParams": config}}
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        ["not", "a", "dict"],
+        {"componentId": "1_100", "topView": ["x"]},
+        _with_config(["mode2", "remoteOn"]),
+        _with_config({"mode2": "2", "remoteOn": {"value": "1"}}),
+        _with_config({"mode2": {"value": "2"}, "remoteOn": None}),
+    ],
+)
+async def test_malformed_component_detail(env: Env, detail: Any) -> None:
+    login_ok(env.state)
+    env.state.add("GET", COMPONENTS, Reply(payload=COMPONENT_LIST))
+    env.state.add("GET", COMPONENT, Reply(payload=detail))
+    with pytest.raises(CommunicationError):
+        await env.client().get_boiler_state(FACILITY)
+
+
+async def test_missing_remote_on_and_empty_top_view(env: Env) -> None:
+    login_ok(env.state)
+    client = env.client()
+    env.state.add("GET", COMPONENTS, Reply(payload=COMPONENT_LIST))
+    env.state.add("GET", COMPONENT, Reply(payload=_with_config({"mode2": {"id": "1", "value": "2"}})))
+    with pytest.raises(CloudParameterNotFoundError, match="remoteOn"):
+        await client.get_boiler_state(FACILITY)
+    env.state.add("GET", COMPONENTS, Reply(payload=COMPONENT_LIST))
+    env.state.add("GET", COMPONENT, Reply(payload={"componentId": "1_100", "topView": None}))
+    with pytest.raises(CloudParameterNotFoundError, match="mode2"):
+        await client.get_boiler_state(FACILITY)
+
+
+async def test_set_operating_mode_without_parameter_id(env: Env) -> None:
+    login_ok(env.state)
+    config = component("2", "1")["topView"]["configParams"]
+    del config["mode2"]["id"]
+    env.state.add("GET", COMPONENTS, Reply(payload=COMPONENT_LIST))
+    env.state.add("GET", COMPONENT, Reply(payload=_with_config(config)))
+    with pytest.raises(CommunicationError):
+        await env.client().set_operating_mode(FACILITY, OperatingMode.AUTOMATIC)
+    assert env.state.received("PUT", PARAMETER) == []
