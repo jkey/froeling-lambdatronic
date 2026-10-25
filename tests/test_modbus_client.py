@@ -177,3 +177,65 @@ async def test_write_echo_mismatch(fake_address: tuple[str, int]) -> None:
         client._protocol.request = bad_echo  # type: ignore[method-assign]
         with pytest.raises(ModbusResponseError, match="echo"):
             await client.write_register(2, 0, 140)
+
+
+async def test_close_while_device_is_silent_returns_quickly(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    fake.silence_next = 10
+    client = client_for(fake_address, timeout=5.0)
+    await client.connect()
+    read = asyncio.create_task(client.read_input_registers(2, 4000, 1))
+    await asyncio.sleep(0.05)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await client.close()
+    with pytest.raises(ModbusConnectionError, match="client closed"):
+        await read
+    assert loop.time() - start < 0.5
+    assert not client.connected
+    await asyncio.sleep(0.1)
+    assert not client.connected
+    assert fake.connections == 1
+
+
+async def test_close_interrupts_backoff(fake: FakeLambdatronic, fake_address: tuple[str, int]) -> None:
+    fake.busy_next = 10
+    client = client_for(fake_address, retries=10)
+    await client.connect()
+    read = asyncio.create_task(client.read_input_registers(2, 4000, 1))
+    await asyncio.sleep(0.15)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await client.close()
+    with pytest.raises(ModbusConnectionError, match="client closed"):
+        await read
+    assert loop.time() - start < 0.2
+    assert not client.connected
+    assert fake.connections == 1
+
+
+async def test_closed_client_does_not_reconnect_implicitly(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    client = client_for(fake_address)
+    assert await client.read_input_registers(2, 4000, 1) == [2]
+    await client.close()
+    with pytest.raises(ModbusConnectionError, match="client closed"):
+        await client.read_input_registers(2, 4000, 1)
+    assert not client.connected
+    assert fake.connections == 1
+    await client.connect()
+    assert await client.read_input_registers(2, 4000, 1) == [2]
+    assert fake.connections == 2
+    await client.close()
+
+
+async def test_close_during_connect_discards_the_connection(fake_address: tuple[str, int]) -> None:
+    client = client_for(fake_address)
+    connecting = asyncio.create_task(client.connect())
+    await asyncio.sleep(0)
+    await client.close()
+    with pytest.raises(ModbusConnectionError, match="client closed"):
+        await connecting
+    assert not client.connected

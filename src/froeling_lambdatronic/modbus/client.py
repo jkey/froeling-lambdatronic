@@ -1,6 +1,7 @@
 """Minimal asyncio Modbus TCP client for FC03, FC04 and FC06."""
 
 import asyncio
+import contextlib
 import logging
 import struct
 import time
@@ -52,6 +53,9 @@ class ModbusTcpClient:
         self._lock = asyncio.Lock()
         self._protocol: ModbusTcpProtocol | None = None
         self._last_request_end = 0.0
+        # Set by close(); blocks implicit reconnects until connect() is called again.
+        self._closed = False
+        self._closed_event = asyncio.Event()
 
     @property
     def connected(self) -> bool:
@@ -71,14 +75,19 @@ class ModbusTcpClient:
         await self.close()
 
     async def connect(self) -> None:
-        """Open the connection if it is not open yet."""
+        """Open the connection if it is not open yet (also reopens a closed client)."""
         async with self._lock:
+            self._closed = False
+            self._closed_event.clear()
             await self._connect()
 
     async def close(self) -> None:
-        """Close the connection."""
-        async with self._lock:
-            self._disconnect()
+        """Close the connection immediately; in-flight requests fail and nothing reconnects."""
+        self._closed = True
+        self._closed_event.set()
+        # Closing the transport fails a pending request through connection_lost,
+        # so there is no need to wait for the lock held by that request.
+        self._disconnect()
 
     async def read_holding_registers(self, unit_id: int, address: int, count: int) -> list[int]:
         """Read holding registers (FC03) starting at a zero-based address."""
@@ -109,27 +118,39 @@ class ModbusTcpClient:
         async with self._lock:
             attempt = 0
             while True:
+                self._raise_if_closed()
                 try:
                     return await self._execute_once(unit_id, pdu)
-                except DeviceBusyError:
+                except DeviceBusyError as err:
+                    self._raise_if_closed(err)
                     if attempt >= self._retries:
                         raise
                     _LOGGER.debug("Device busy, retrying")
                 except _TRANSPORT_ERRORS as err:
                     self._disconnect()
+                    self._raise_if_closed(err)
                     if attempt >= self._retries:
                         if isinstance(err, ModbusError):
                             raise
                         raise ModbusConnectionError(str(err)) from err
                     _LOGGER.debug("Request failed (%s), reconnecting", err)
-                await asyncio.sleep(min(self._backoff_max, 0.1 * 2**attempt))
+                # Back off, but wake up as soon as close() is called.
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(
+                        self._closed_event.wait(), min(self._backoff_max, 0.1 * 2**attempt)
+                    )
                 attempt += 1
+
+    def _raise_if_closed(self, cause: BaseException | None = None) -> None:
+        if self._closed:
+            raise ModbusConnectionError("client closed") from cause
 
     async def _execute_once(self, unit_id: int, pdu: bytes) -> bytes:
         await self._connect()
         wait = self._request_pause - (time.monotonic() - self._last_request_end)
         if wait > 0:
             await asyncio.sleep(wait)
+        self._raise_if_closed()
         assert self._protocol is not None
         try:
             unit, response = await self._protocol.request(unit_id, pdu, self._timeout)
@@ -156,6 +177,9 @@ class ModbusTcpClient:
             )
         except (OSError, TimeoutError) as err:
             raise ModbusConnectionError(f"cannot connect to {self._host}:{self._port}: {err}") from err
+        if self._closed:
+            protocol.close()
+            raise ModbusConnectionError("client closed")
         self._protocol = protocol
         _LOGGER.debug("Connected to %s:%d", self._host, self._port)
 

@@ -1,5 +1,6 @@
 """Tests for LambdatronicClient against the fake server with real register values."""
 
+import asyncio
 import socket
 
 import pytest
@@ -174,3 +175,20 @@ async def test_write_mode_rejects_alias_of_other_mode(
     async with client_for(fake_address) as client:
         with pytest.raises(WriteRejectedError, match="read back"):
             await client.write(mode, 1)
+
+
+async def test_close_during_read_values(fake: FakeLambdatronic, fake_address: tuple[str, int]) -> None:
+    client = LambdatronicClient(fake_address[0], fake_address[1], timeout=5.0, request_pause=0.0)
+    await client.connect()
+    fake.silence_next = 10
+    read = asyncio.create_task(client.read_values(EQUIPMENT))
+    await asyncio.sleep(0.05)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await client.close()
+    with pytest.raises(ConnectionFailedError):
+        await read
+    assert loop.time() - start < 0.5
+    await asyncio.sleep(0.1)
+    assert not client._modbus.connected
+    assert fake.connections == 1
