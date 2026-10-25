@@ -25,16 +25,36 @@ from .models import (
     LambdatronicParameters,
     LambdatronicValues,
 )
-from .registers import BOILER, ERROR_SLOTS, RegisterDef, buffer, heating_circuit, hot_water
-from .texts import HEATING_CIRCUIT_MODES, boiler_state_text, error_text, system_state_text
+from .registers import (
+    BOILER,
+    ERROR_SLOTS,
+    BufferRegisters,
+    HeatingCircuitRegisters,
+    HotWaterRegisters,
+    RegisterDef,
+    buffer,
+    heating_circuit,
+    hot_water,
+)
+from .texts import (
+    BOILER_STATES,
+    HEATING_CIRCUIT_MODES,
+    SYSTEM_STATES,
+    boiler_state_text,
+    error_text,
+    system_state_text,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
     "BOILER",
+    "BOILER_STATES",
     "ERROR_SLOTS",
     "HEATING_CIRCUIT_MODES",
+    "SYSTEM_STATES",
     "AuthenticationError",
+    "BufferRegisters",
     "BufferValues",
     "CloudBoilerState",
     "CloudParameterNotFoundError",
@@ -45,8 +65,10 @@ __all__ = [
     "FroelingConnectClient",
     "FroelingError",
     "HeatingCircuitParameters",
+    "HeatingCircuitRegisters",
     "HeatingCircuitValues",
     "HotWaterParameters",
+    "HotWaterRegisters",
     "HotWaterValues",
     "LambdatronicClient",
     "LambdatronicParameters",

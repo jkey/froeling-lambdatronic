@@ -7,9 +7,13 @@ on:
 jobs:
   test:
     runs-on: arm64
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["python3.13-bookworm", "python3.14-bookworm"]
     container:
-      # uv + Python 3.13 vorinstalliert; kein node -> kein actions/checkout.
-      image: ghcr.io/astral-sh/uv:python3.13-bookworm
+      # uv + Python vorinstalliert; kein node -> kein actions/checkout.
+      image: ghcr.io/astral-sh/uv:${{ matrix.image }}
     steps:
       - name: Repo holen
         run: |

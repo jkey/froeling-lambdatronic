@@ -15,9 +15,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
+      - run: uv sync --locked
       - name: Version des Tags muss zur Paketversion passen
         run: test "v$(uv run python -c "import froeling_lambdatronic as f; print(f.__version__)")" = "${GITHUB_REF_NAME}"
-      - run: uv sync --locked && uv run pytest
+      - run: uv run pytest
       - run: uv build
       - uses: actions/upload-artifact@v4
         with:

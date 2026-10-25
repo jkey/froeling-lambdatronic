@@ -45,6 +45,11 @@ def test_public_api() -> None:
         "system_state_text",
         "boiler_state_text",
         "HEATING_CIRCUIT_MODES",
+        "SYSTEM_STATES",
+        "BOILER_STATES",
+        "HeatingCircuitRegisters",
+        "HotWaterRegisters",
+        "BufferRegisters",
     }
     assert set(froeling_lambdatronic.__all__) == expected
     for name in expected:

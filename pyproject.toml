@@ -18,6 +18,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Home Automation",
   "Typing :: Typed",
 ]
@@ -33,6 +34,9 @@ dev = [
   "pytest-cov>=6.0",
   "ruff>=0.8",
 ]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["docs/", "scripts/"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/froeling_lambdatronic"]
