@@ -27,7 +27,6 @@ Source = "https://git.seiler.onl/kurt/froeling-lambdatronic"
 
 [dependency-groups]
 dev = [
-  "aioresponses>=0.7.8",
   "mypy>=1.13",
   "pytest>=8.3",
   "pytest-asyncio>=0.24",
@@ -51,10 +50,6 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
 strict = true
 python_version = "3.13"
 files = ["src", "tests"]
-
-[[tool.mypy.overrides]]
-module = ["aioresponses", "aioresponses.*"]
-ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 110
