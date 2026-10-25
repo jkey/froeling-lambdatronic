@@ -1,5 +1,6 @@
 """Declarative register catalogue of the Lambdatronic 3200 (Fröling document B1200522)."""
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -61,6 +62,8 @@ class RegisterDef:
         """Validate, round to the register step and convert to a raw 16-bit value."""
         if not self.writable:
             raise ReadOnlyRegisterError(self.key)
+        if not math.isfinite(value):
+            raise ValueOutOfRangeError(self.key, value, self.minimum, self.maximum)
         step = self.step if self.step is not None else 1 / self.divisor
         rounded = round(round(value / step) * step, 6)
         if (self.minimum is not None and rounded < self.minimum) or (

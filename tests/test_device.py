@@ -192,3 +192,24 @@ async def test_close_during_read_values(fake: FakeLambdatronic, fake_address: tu
     await asyncio.sleep(0.1)
     assert not client._modbus.connected
     assert fake.connections == 1
+
+
+@pytest.mark.parametrize("slave", [0, 248, -1])
+def test_slave_must_be_valid(slave: int) -> None:
+    with pytest.raises(ValueError, match="slave"):
+        LambdatronicClient("127.0.0.1", slave=slave)
+
+
+def test_modbus_options_are_passed_through() -> None:
+    client = LambdatronicClient(
+        "127.0.0.1", slave=247, timeout=1.5, connect_timeout=2.5, retries=0, request_pause=0.1
+    )
+    modbus = client._modbus
+    assert (modbus._timeout, modbus._connect_timeout, modbus._retries, modbus._request_pause) == (
+        1.5,
+        2.5,
+        0,
+        0.1,
+    )
+    defaults = LambdatronicClient("127.0.0.1", slave=1)._modbus
+    assert (defaults._timeout, defaults._connect_timeout, defaults._retries) == (5.0, 5.0, 2)

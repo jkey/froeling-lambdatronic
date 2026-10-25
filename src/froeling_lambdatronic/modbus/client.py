@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import logging
+import random
 import struct
 import time
 from types import TracebackType
@@ -56,6 +57,9 @@ class ModbusTcpClient:
         # Set by close(); blocks implicit reconnects until connect() is called again.
         self._closed = False
         self._closed_event = asyncio.Event()
+        # The client owns the transaction id counter so it continues across reconnects:
+        # a late reply from an old connection can then never match a new request's id.
+        self._next_tid = random.randint(1, 0xFFFF)
 
     @property
     def connected(self) -> bool:
@@ -141,6 +145,11 @@ class ModbusTcpClient:
                     )
                 attempt += 1
 
+    def _allocate_tid(self) -> int:
+        tid = self._next_tid
+        self._next_tid = tid % 0xFFFF + 1
+        return tid
+
     def _raise_if_closed(self, cause: BaseException | None = None) -> None:
         if self._closed:
             raise ModbusConnectionError("client closed") from cause
@@ -172,7 +181,9 @@ class ModbusTcpClient:
         loop = asyncio.get_running_loop()
         try:
             _, protocol = await asyncio.wait_for(
-                loop.create_connection(ModbusTcpProtocol, self._host, self._port),
+                loop.create_connection(
+                    lambda: ModbusTcpProtocol(tid_allocator=self._allocate_tid), self._host, self._port
+                ),
                 self._connect_timeout,
             )
         except (OSError, TimeoutError) as err:

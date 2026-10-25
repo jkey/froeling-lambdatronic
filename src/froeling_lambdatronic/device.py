@@ -46,6 +46,9 @@ from .registers import (
 )
 from .texts import normalize_heating_circuit_mode
 
+# Highest unicast Modbus unit id.
+MAX_SLAVE = 247
+
 _VALUE_DEFS = tuple(d for d in BOILER.all() if d.space is Space.INPUT)
 _PARAMETER_DEFS = tuple(d for d in BOILER.all() if d.space is Space.HOLDING)
 
@@ -60,11 +63,22 @@ class LambdatronicClient:
         slave: int = 2,
         *,
         timeout: float = 5.0,
+        connect_timeout: float = 5.0,
+        retries: int = 2,
         request_pause: float = 0.03,
         modbus: ModbusTcpClient | None = None,
     ) -> None:
+        if not 1 <= slave <= MAX_SLAVE:
+            raise ValueError(f"slave must be between 1 and {MAX_SLAVE}, got {slave}")
         self._slave = slave
-        self._modbus = modbus or ModbusTcpClient(host, port, timeout=timeout, request_pause=request_pause)
+        self._modbus = modbus or ModbusTcpClient(
+            host,
+            port,
+            timeout=timeout,
+            connect_timeout=connect_timeout,
+            retries=retries,
+            request_pause=request_pause,
+        )
 
     async def __aenter__(self) -> Self:
         await self.connect()

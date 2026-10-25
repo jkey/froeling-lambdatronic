@@ -239,3 +239,21 @@ async def test_close_during_connect_discards_the_connection(fake_address: tuple[
     with pytest.raises(ModbusConnectionError, match="client closed"):
         await connecting
     assert not client.connected
+
+
+async def test_transaction_ids_continue_across_reconnects(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    fake.silence_next = 1
+    async with client_for(fake_address) as client:
+        assert await client.read_input_registers(2, 4000, 1) == [2]
+        assert await client.read_input_registers(2, 4000, 1) == [2]
+    assert fake.connections == 2
+    first, *rest = fake.transaction_ids
+    assert fake.transaction_ids == [(first - 1 + i) % 0xFFFF + 1 for i in range(len(rest) + 1)]
+
+
+def test_transaction_ids_wrap_around() -> None:
+    client = ModbusTcpClient("127.0.0.1")
+    client._next_tid = 0xFFFF
+    assert [client._allocate_tid() for _ in range(3)] == [0xFFFF, 1, 2]

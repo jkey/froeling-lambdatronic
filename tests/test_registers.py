@@ -1,5 +1,7 @@
 """Tests for register definitions and block planning."""
 
+import math
+
 import pytest
 
 from froeling_lambdatronic.exceptions import ReadOnlyRegisterError, ValueOutOfRangeError
@@ -136,3 +138,12 @@ def test_read_block_lookup() -> None:
     assert block.contains(BOILER.residual_oxygen)
     assert not block.contains(BOILER.boiler_setpoint)
     assert block.raw([10, 11, 12, 13, 14], BOILER.residual_oxygen) == 13
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_encode_rejects_non_finite_values(value: float) -> None:
+    with pytest.raises(ValueOutOfRangeError):
+        BOILER.boiler_setpoint.encode(value)
+    unbounded = RegisterDef(key="t", number=40999, writable=True)
+    with pytest.raises(ValueOutOfRangeError):
+        unbounded.encode(value)

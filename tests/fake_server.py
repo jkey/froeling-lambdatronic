@@ -35,6 +35,7 @@ class FakeLambdatronic:
         self.holding_registers = holding_registers
         self.unit_id = unit_id
         self.requests: list[tuple[int, int, int, int]] = []
+        self.transaction_ids: list[int] = []
         self.silence_next = 0
         self.busy_next = 0
         self.garbage_before_next = b""
@@ -67,6 +68,7 @@ class FakeLambdatronic:
             while True:
                 header = await reader.readexactly(7)
                 tid, _, length, unit = struct.unpack(">HHHB", header)
+                self.transaction_ids.append(tid)
                 pdu = await reader.readexactly(length - 1)
                 if self.close_next:
                     self.close_next = False

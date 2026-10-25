@@ -17,10 +17,15 @@ MAX_LENGTH = 254
 class ModbusTcpProtocol(asyncio.Protocol):
     """Frames requests, matches responses by transaction id and resyncs on garbage."""
 
-    def __init__(self, on_connection_lost: Callable[[Exception | None], None] | None = None) -> None:
+    def __init__(
+        self,
+        on_connection_lost: Callable[[Exception | None], None] | None = None,
+        tid_allocator: Callable[[], int] | None = None,
+    ) -> None:
         self._transport: asyncio.Transport | None = None
         self._buffer = bytearray()
         self._next_tid = 1
+        self._tid_allocator = tid_allocator
         self._pending: dict[int, asyncio.Future[tuple[int, bytes]]] = {}
         self._on_connection_lost = on_connection_lost
 
@@ -50,6 +55,8 @@ class ModbusTcpProtocol(asyncio.Protocol):
             self._transport.close()
 
     def _allocate_tid(self) -> int:
+        if self._tid_allocator is not None:
+            return self._tid_allocator()
         tid = self._next_tid
         self._next_tid = tid % 0xFFFF + 1
         return tid
