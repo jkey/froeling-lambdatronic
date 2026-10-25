@@ -170,7 +170,7 @@ class FroelingConnectClient:
                 ) as response:
                     if response.status != HTTPStatus.UNAUTHORIZED:
                         return await self._handle_response(method, url, response)
-            except (aiohttp.ClientError, TimeoutError, json.JSONDecodeError) as err:
+            except (aiohttp.ClientError, TimeoutError, ValueError) as err:  # JSON and text decoding errors
                 raise ConnectionFailedError(f"Fröling Connect request failed: {err}") from err
             # 401: renew the token once, outside the closed response context.
             if attempt == 0:

@@ -42,7 +42,7 @@ PARAMETER = f"/fcs/v1.0/resources/user/{USER}/facility/{FACILITY}/parameter/1000
 class Reply:
     status: int = 200
     payload: Any = None
-    body: str | None = None
+    body: str | bytes | None = None
     content_type: str = "application/json"
     headers: dict[str, str] = field(default_factory=dict)
     delay: float = 0.0
@@ -79,8 +79,9 @@ class ServerState:
         if reply.delay:
             await asyncio.sleep(reply.delay)
         if reply.body is not None:
+            content = reply.body.encode() if isinstance(reply.body, str) else reply.body
             return web.Response(
-                status=reply.status, text=reply.body, content_type=reply.content_type, headers=reply.headers
+                status=reply.status, body=content, content_type=reply.content_type, headers=reply.headers
             )
         if reply.payload is not None:
             return web.json_response(reply.payload, status=reply.status, headers=reply.headers)
@@ -307,6 +308,9 @@ async def test_request_errors(env: Env, monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(ConnectionFailedError):
         await client.get_facilities()
     env.state.add("GET", FACILITIES, Reply(body="not json", content_type="text/plain"))
+    with pytest.raises(ConnectionFailedError):
+        await client.get_facilities()
+    env.state.add("GET", FACILITIES, Reply(body=b"\xff\xfe[]", content_type="application/json"))
     with pytest.raises(ConnectionFailedError):
         await client.get_facilities()
 
