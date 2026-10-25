@@ -233,10 +233,17 @@ class LambdatronicClient:
         except ModbusError as err:
             raise self._map(err) from err
         read_back = (await self._read_raw([definition]))[definition.number]
+        if definition.key.endswith("_operating_mode"):
+            # The boiler reads heating circuit modes back with aliases (e.g. 11 for 0).
+            normalized = normalize_heating_circuit_mode(read_back)
+            if normalized != raw_value:
+                raise WriteRejectedError(definition.key, f"read back {read_back} instead of {raw_value}")
+            return float(normalized)
         if read_back != raw_value:
             raise WriteRejectedError(definition.key, f"read back {read_back} instead of {raw_value}")
         decoded = definition.decode(read_back)
-        assert decoded is not None
+        if decoded is None:
+            raise CommunicationError(f"write to {definition.key} could not be verified")
         return decoded
 
     async def _read_raw(self, definitions: Iterable[RegisterDef], max_gap: int = 10) -> dict[int, int]:

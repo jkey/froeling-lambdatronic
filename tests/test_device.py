@@ -153,3 +153,24 @@ async def test_brauchwasser_snapshot_state() -> None:
         assert values.hot_water[1].pump == 100.0
     finally:
         await server.stop()
+
+
+async def test_write_mode_accepts_alias_read_back(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    mode = heating_circuit(1).operating_mode
+    fake.ignore_write.add(mode.address)
+    fake.holding_registers[mode.address] = 11  # boiler reports mode 0 as 11
+    async with client_for(fake_address) as client:
+        assert await client.write(mode, 0) == 0
+
+
+async def test_write_mode_rejects_alias_of_other_mode(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    mode = heating_circuit(1).operating_mode
+    fake.ignore_write.add(mode.address)
+    fake.holding_registers[mode.address] = 12  # alias of 4, not 1
+    async with client_for(fake_address) as client:
+        with pytest.raises(WriteRejectedError, match="read back"):
+            await client.write(mode, 1)
