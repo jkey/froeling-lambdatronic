@@ -10,3 +10,4 @@ htmlcov/
 .ruff_cache/
 .pytest_cache/
 .superpowers/
+docs/superpowers/
