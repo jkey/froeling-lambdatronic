@@ -2,6 +2,7 @@
 
 import itertools
 import logging
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -120,12 +121,16 @@ class CloudParameter:
 
 @dataclass(frozen=True, slots=True)
 class CloudComponentDetail:
-    """All parameters and the weekly schedule of one component."""
+    """All parameters and the weekly schedule of one component.
+
+    `skipped_phase_days` lists the days with a phase that could not be read and is missing in `schedule`.
+    """
 
     component: CloudComponent
     parameters: Mapping[str, CloudParameter]
     schedule: Mapping[Weekday, tuple[Phase, ...]]
     schedule_ids: Mapping[Weekday, int]
+    skipped_phase_days: frozenset[Weekday] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,8 +211,8 @@ def parse_component_detail(data: Any) -> CloudComponentDetail:  # noqa: ANN401 -
         for raw in _view_parameters(data.get(view), view):
             parameter = _parameter(raw)
             parameters[parameter.name] = parameter
-    schedule, schedule_ids = _schedule(data.get("timeWindowsView"), with_ids=True)
-    return CloudComponentDetail(component, parameters, schedule, schedule_ids)
+    schedule, schedule_ids, skipped = _schedule(data.get("timeWindowsView"), component, with_ids=True)
+    return CloudComponentDetail(component, parameters, schedule, schedule_ids, skipped)
 
 
 def parse_overview(data: Any) -> CloudOverview:  # noqa: ANN401 - untyped JSON
@@ -225,7 +230,7 @@ def parse_overview(data: Any) -> CloudOverview:  # noqa: ANN401 - untyped JSON
             for name, entry in item.items()
             if isinstance(entry, dict) and entry.get("value") is not None
         }
-        schedule, _ = _schedule(item.get("heatingPhase"), with_ids=False)
+        schedule, _, _ = _schedule(item.get("heatingPhase"), component, with_ids=False)
         components.append(CloudOverviewComponent(component, values, schedule))
     temperature = None if outside is None or outside.get("value") is None else str(outside["value"])
     return CloudOverview(temperature, tuple(components))
@@ -364,13 +369,15 @@ def _parameter(raw: Any) -> CloudParameter:  # noqa: ANN401 - untyped JSON
 
 def _schedule(
     data: Any,  # noqa: ANN401 - untyped JSON
+    component: CloudComponent,
     *,
     with_ids: bool,
-) -> tuple[dict[Weekday, tuple[Phase, ...]], dict[Weekday, int]]:
+) -> tuple[dict[Weekday, tuple[Phase, ...]], dict[Weekday, int], frozenset[Weekday]]:
     schedule: dict[Weekday, tuple[Phase, ...]] = {}
     ids: dict[Weekday, int] = {}
+    skipped: set[Weekday] = set()
     if data is None:
-        return schedule, ids
+        return schedule, ids, frozenset()
     if not isinstance(data, list):
         raise CommunicationError("schedule is not a list")
     for day in data:
@@ -380,24 +387,49 @@ def _schedule(
             weekday = Weekday(str(day.get("weekDay")))
         except ValueError:
             continue
-        schedule[weekday] = tuple(p for p in (_phase(raw) for raw in day["phases"]) if p is not None)
+        phases: list[Phase] = []
+        for raw in day["phases"]:
+            try:
+                phase = _phase(raw)
+            except ValueError:
+                # Only component id and weekday are logged; phase values stay out of the log.
+                _LOGGER.warning(
+                    "Skipping an unreadable schedule phase of component %s on %s",
+                    component.component_id,
+                    weekday.value,
+                )
+                skipped.add(weekday)
+                continue
+            if phase is not None:
+                phases.append(phase)
+        schedule[weekday] = tuple(phases)
         if with_ids:
             day_id = day.get("id")
             if not isinstance(day_id, int) or isinstance(day_id, bool):
                 raise CommunicationError(f"schedule day {weekday} has no valid id")
             ids[weekday] = day_id
-    return schedule, ids
+    return schedule, ids, frozenset(skipped)
+
+
+_PHASE_FIELDS = ("startHour", "startMinute", "endHour", "endMinute")
 
 
 def _phase(raw: Any) -> Phase | None:  # noqa: ANN401 - untyped JSON
-    try:
-        start = raw["startHour"] * 60 + raw["startMinute"]
-        end = raw["endHour"] * 60 + raw["endMinute"]
-        if start == end:
-            return None  # unused slot
-        return Phase(start, end)
-    except (KeyError, TypeError, ValueError) as err:
-        raise CommunicationError(f"invalid schedule phase: {err}") from err
+    """One phase; None for an unused slot (start == end), ValueError if it cannot be read."""
+    if not isinstance(raw, dict):
+        raise ValueError("phase is not an object")
+    fields: list[int] = []
+    for name in _PHASE_FIELDS:
+        field = raw.get(name)
+        if not isinstance(field, int) or isinstance(field, bool):
+            raise ValueError("phase fields are not integers")
+        fields.append(field)
+    start_hour, start_minute, end_hour, end_minute = fields
+    start = start_hour * 60 + start_minute
+    end = end_hour * 60 + end_minute
+    if start == end:
+        return None  # unused slot
+    return Phase(start, end)
 
 
 def _section(data: dict[str, Any], name: str) -> dict[str, Any]:
@@ -425,10 +457,13 @@ def _integer(section: dict[str, Any], key: str) -> int | None:
 
 
 def _number(value: Any) -> float | None:  # noqa: ANN401 - untyped JSON
+    if isinstance(value, bool):
+        return None
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return None
+    return number if math.isfinite(number) else None
 
 
 def _timestamp(value: str | None) -> datetime | None:

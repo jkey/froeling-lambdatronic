@@ -202,9 +202,6 @@ def test_parameter_defaults() -> None:
         {"timeWindowsView": {"MONDAY": []}},
         {"timeWindowsView": ["x"]},
         {"timeWindowsView": [{"id": 1, "weekDay": "MONDAY", "phases": "x"}]},
-        {"timeWindowsView": [{"id": 1, "weekDay": "MONDAY", "phases": ["x"]}]},
-        {"timeWindowsView": [{"id": 1, "weekDay": "MONDAY", "phases": [{"startHour": 1}]}]},
-        {"timeWindowsView": [{"id": 1, "weekDay": "MONDAY", "phases": [_phase(22, 0, 6, 0)]}]},
         {"timeWindowsView": [{"id": "a", "weekDay": "MONDAY", "phases": []}]},
     ],
 )
@@ -230,6 +227,67 @@ def test_schedule_skips_empty_phases_and_unknown_days() -> None:
     detail = parse_component_detail(raw)
     assert detail.schedule == {Weekday.MONDAY: (Phase(360, 480),), Weekday.TUESDAY: ()}
     assert detail.schedule_ids == {Weekday.MONDAY: 1, Weekday.TUESDAY: 3}
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [
+        "x",
+        {"startHour": 1},
+        _phase(22, 0, 6, 0),
+        _phase(6, 0, 25, 0),
+        {"startHour": True, "startMinute": 0, "endHour": 8, "endMinute": 0},
+        {"startHour": 6, "startMinute": 0, "endHour": 8.5, "endMinute": 0},
+        {"startHour": 6, "startMinute": "0", "endHour": 8, "endMinute": 0},
+    ],
+)
+def test_broken_phase_is_skipped_and_logged(broken: Any, caplog: pytest.LogCaptureFixture) -> None:
+    raw = {
+        "componentId": "300_3100",
+        "componentNumber": 1,
+        "type": "CIRCUIT",
+        "timeWindowsView": [
+            {"id": 1, "weekDay": "MONDAY", "phases": [_phase(6, 0, 8, 0), broken]},
+            {"id": 2, "weekDay": "TUESDAY", "phases": [_phase(6, 0, 8, 0)]},
+        ],
+    }
+    with caplog.at_level(logging.WARNING, logger="froeling_lambdatronic.cloud"):
+        detail = parse_component_detail(raw)
+    assert detail.schedule == {Weekday.MONDAY: (Phase(360, 480),), Weekday.TUESDAY: (Phase(360, 480),)}
+    assert detail.schedule_ids == {Weekday.MONDAY: 1, Weekday.TUESDAY: 2}
+    assert detail.skipped_phase_days == frozenset({Weekday.MONDAY})
+    (record,) = [r for r in caplog.records if r.name == "froeling_lambdatronic.cloud"]
+    assert record.levelno == logging.WARNING
+    assert "300_3100" in record.getMessage()
+    assert "MONDAY" in record.getMessage()
+    # Only the component id and the weekday are logged, never the phase values.
+    assert "22" not in record.getMessage()
+    assert "25" not in record.getMessage()
+
+
+def test_complete_schedule_has_no_skipped_days() -> None:
+    assert parse_component_detail(load("component_300_3100.json")).skipped_phase_days == frozenset()
+
+
+def test_broken_overview_phase_is_skipped_and_logged(caplog: pytest.LogCaptureFixture) -> None:
+    data = load("overview.json")
+    data["components"][1]["heatingPhase"][0]["phases"].append({"startHour": "x"})
+    with caplog.at_level(logging.WARNING, logger="froeling_lambdatronic.cloud"):
+        overview = parse_overview(data)
+    assert overview.components[1].schedule[Weekday.MONDAY] == (Phase(270, 1320),)
+    assert len([r for r in caplog.records if r.name == "froeling_lambdatronic.cloud"]) == 1
+
+
+@pytest.mark.parametrize("limit", [True, "nan", "inf", "-inf", float("nan")])
+def test_odd_parameter_limits_are_ignored(limit: Any) -> None:
+    raw = {
+        "componentId": "1_100",
+        "componentNumber": 1,
+        "type": "BOILER",
+        "stateView": [{"id": "3_0", "name": "boilerTemp", "minVal": limit, "maxVal": limit}],
+    }
+    param = parse_component_detail(raw).parameters["boilerTemp"]
+    assert (param.minimum, param.maximum) == (None, None)
 
 
 def test_parse_overview() -> None:

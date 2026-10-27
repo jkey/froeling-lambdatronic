@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import json
+import logging
 import socket
 from collections import defaultdict, deque
 from collections.abc import AsyncIterator
@@ -534,6 +535,42 @@ async def test_read_snapshot_with_details(env: Env) -> None:
     assert len(env.state.received("GET", COMPONENTS)) == 1
 
 
+async def test_read_snapshot_skips_broken_details(env: Env, caplog: pytest.LogCaptureFixture) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    serve_list(env.state)
+    for component in fixture("component_list.json"):
+        component_id = component["componentId"]
+        if component_id == "300_3110":
+            serve_detail(env.state, component_id, ["not", "an", "object"])
+        elif component_id == "200_2100":
+            env.state.add("GET", detail_path(component_id), Reply(status=500))
+        else:
+            serve_detail(env.state, component_id)
+    with caplog.at_level(logging.WARNING, logger="froeling_lambdatronic.cloud"):
+        snapshot = await env.client().read_snapshot(FACILITY, details=True)
+    assert snapshot.details_loaded
+    assert snapshot.value("hc1_curve_flow_plus10") == 46.0
+    assert snapshot.value("hc2_curve_flow_plus10") is None
+    assert snapshot.value("hc2_flow_temperature") == 28.0  # from the overview
+    assert snapshot.value("dhw1_recharge_below") is None
+    assert snapshot.value("circulation_pump_off_above") is not None
+    messages = [r.getMessage() for r in caplog.records if r.name == "froeling_lambdatronic.cloud"]
+    assert len(messages) == 2
+    assert "300_3110" in messages[0]
+    assert "200_2100" in messages[1]
+    assert all(str(USER) not in m and str(FACILITY) not in m for m in messages)
+
+
+async def test_read_snapshot_does_not_skip_rate_limit(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    serve_list(env.state)
+    env.state.add("GET", detail_path("1_100"), Reply(status=429))
+    with pytest.raises(RateLimitedError):
+        await env.client().read_snapshot(FACILITY, details=True)
+
+
 @pytest.mark.parametrize(
     ("key", "value", "target", "sent"),
     [
@@ -744,6 +781,33 @@ async def test_set_schedule(env: Env) -> None:
     ]
     assert post.json[1]["phases"] == [{"startHour": 6, "startMinute": 0, "endHour": 22, "endMinute": 0}]
     assert post.json[6]["phases"] == []
+
+
+def _with_broken_monday_phase(component_id: str) -> dict[str, Any]:
+    data: dict[str, Any] = fixture(f"component_{component_id}.json")
+    monday = next(day for day in data["timeWindowsView"] if day["weekDay"] == "MONDAY")
+    monday["phases"].append({"startHour": "x"})
+    return data
+
+
+async def test_set_schedule_refuses_to_drop_unreadable_phases(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3110", _with_broken_monday_phase("300_3110"))
+    with pytest.raises(CommunicationError, match="MONDAY"):
+        await env.client().set_schedule(FACILITY, "hc2", {Weekday.TUESDAY: [Phase(360, 480)]})
+    assert env.state.received("POST", TIME_WINDOWS) == []
+
+
+async def test_set_schedule_may_replace_the_day_with_unreadable_phases(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3110", _with_broken_monday_phase("300_3110"))
+    serve_detail(env.state, "1_100")
+    env.state.add("POST", TIME_WINDOWS, Reply(payload={}))
+    await env.client().set_schedule(FACILITY, "hc2", {Weekday.MONDAY: [Phase(360, 480)]})
+    (post,) = env.state.received("POST", TIME_WINDOWS)
+    assert post.json[0]["phases"] == [{"startHour": 6, "startMinute": 0, "endHour": 8, "endMinute": 0}]
 
 
 async def test_set_schedule_not_modified(env: Env) -> None:

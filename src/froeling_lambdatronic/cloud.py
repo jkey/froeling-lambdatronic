@@ -3,6 +3,7 @@
 import base64
 import binascii
 import json
+import logging
 import math
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
@@ -55,6 +56,7 @@ _FCS = "/fcs/v1.0/resources/user/{user_id}/facility/{facility_id}"
 # Marker in the per-call set of fresh data: the component list was fetched during this call.
 _COMPONENT_LIST = "componentList"
 _TIMEOUT = aiohttp.ClientTimeout(total=20)
+_LOGGER = logging.getLogger("froeling_lambdatronic.cloud")
 
 
 class OperatingMode(IntEnum):
@@ -172,7 +174,9 @@ class FroelingConnectClient:
     ) -> CloudSnapshot:
         """Read the overview and, with `details`, every component detail except the keys in `skip`.
 
-        Components of an unknown type are not read in detail.
+        Components of an unknown type are not read in detail. A component whose detail cannot be read or
+        parsed is skipped and logged; the snapshot then lacks its detail values. Rate limiting and
+        authentication errors are raised.
         """
         overview = await self.get_overview(facility_id)
         if not details:
@@ -181,7 +185,13 @@ class FroelingConnectClient:
         for component in await self.get_components(facility_id):
             if component.key is None or component.key in skip:
                 continue
-            loaded.append(await self.get_component_detail(facility_id, component.component_id))
+            try:
+                loaded.append(await self.get_component_detail(facility_id, component.component_id))
+            except (CommunicationError, ConnectionFailedError) as err:
+                # Only the component id is logged: the error text carries the URL with user and facility id.
+                _LOGGER.warning(
+                    "Skipping the detail of component %s: %s", component.component_id, type(err).__name__
+                )
         return build_snapshot(overview, loaded)
 
     async def set_value(self, facility_id: int, key: str, value: float | time) -> None:
@@ -217,7 +227,9 @@ class FroelingConnectClient:
     ) -> None:
         """Replace the phases of the given days; the other days keep their current phases.
 
-        Each changed day may have at most four sorted, non-overlapping phases.
+        Each changed day may have at most four sorted, non-overlapping phases. If a day that is not
+        replaced has a phase that could not be read, nothing is written (CommunicationError): sending
+        the week would erase that phase.
         """
         for phases in changes.values():
             validate_day(phases)
@@ -227,6 +239,14 @@ class FroelingConnectClient:
         fetched.add(component.component_id)
         if set(detail.schedule_ids) != set(Weekday):
             raise CloudParameterNotFoundError(f"{component_key} has no weekly schedule")
+        kept_unreadable = [
+            day.value for day in Weekday if day in detail.skipped_phase_days and day not in changes
+        ]
+        if kept_unreadable:
+            raise CommunicationError(
+                f"{component_key} has unreadable phases on {', '.join(kept_unreadable)}; "
+                "writing the week would erase them"
+            )
         week = {day: tuple(detail.schedule.get(day, ())) for day in Weekday}
         week.update({day: tuple(phases) for day, phases in changes.items()})
         await self._ensure_remote_control(facility_id, fetched)
