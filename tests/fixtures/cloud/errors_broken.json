@@ -1,0 +1,30 @@
+[
+ {
+  "errorId": 3,
+  "dateTime": "2026-10-22T06:00:00",
+  "type": 2,
+  "message": "Asche entleeren"
+ },
+ "not an object",
+ {
+  "errorId": 4,
+  "dateTime": "2026-10-22T07:00:00",
+  "type": 1
+ },
+ {
+  "errorId": "x",
+  "dateTime": "gestern",
+  "type": null,
+  "message": "Fühler defekt",
+  "resolutions": [
+   "a"
+  ]
+ },
+ {
+  "message": 42
+ },
+ {
+  "type": "2",
+  "message": "Nur Text"
+ }
+]

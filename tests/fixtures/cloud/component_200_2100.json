@@ -1,0 +1,212 @@
+{
+ "componentId": "200_2100",
+ "displayName": "Brauchwasser",
+ "displayCategory": "Boiler",
+ "componentNumber": 1,
+ "type": "DHW",
+ "topView": {
+  "pictureUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=dhw&dhwTempTop=54%C2%B0C&dhwLoad=4&pumpControl=0%25&isPumpActive=false",
+  "pictureParams": {
+   "dhwTempTop": {
+    "displayName": "Boilertemperatur oben",
+    "editable": false,
+    "id": "3_93",
+    "maxVal": "16000",
+    "minVal": "-16000",
+    "name": "dhwTempTop",
+    "notificationConfigurable": true,
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "54"
+   },
+   "dhwPumpControl": {
+    "displayName": "Boilerpumpe Ansteuerung",
+    "editable": false,
+    "id": "3_144",
+    "maxVal": "32000",
+    "minVal": "-32000",
+    "name": "dhwPumpControl",
+    "parameterType": "NumValueObject",
+    "unit": "%",
+    "value": "0"
+   }
+  },
+  "infoParams": {
+   "reloadBelowTemp": {
+    "displayName": "Nachladen, wenn Boilertemperatur unter",
+    "editable": true,
+    "id": "7_342",
+    "maxVal": "90",
+    "minVal": "1",
+    "name": "reloadBelowTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "45"
+   }
+  },
+  "configParams": {
+   "mode": {
+    "displayName": "Betriebsart Boiler",
+    "editable": true,
+    "id": "9_9971",
+    "maxVal": "2",
+    "minVal": "1",
+    "name": "mode",
+    "parameterType": "StringValueObject",
+    "stringListKeyValues": {
+     "1": "Auto",
+     "2": "Extraladen"
+    },
+    "unit": "",
+    "value": "1"
+   },
+   "setDhwTemp": {
+    "displayName": "Gewünschte Boilertemperatur",
+    "editable": true,
+    "id": "7_339",
+    "maxVal": "100",
+    "minVal": "10",
+    "name": "setDhwTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "55"
+   }
+  }
+ },
+ "timeWindowsView": [
+  {
+   "id": 0,
+   "weekDay": "MONDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "weekDay": "TUESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "weekDay": "WEDNESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "weekDay": "THURSDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "weekDay": "FRIDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "weekDay": "SATURDAY",
+   "phases": [
+    {
+     "startHour": 6,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "weekDay": "SUNDAY",
+   "phases": [
+    {
+     "startHour": 6,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  }
+ ],
+ "stateView": [
+  {
+   "displayName": "Boilertemperatur oben",
+   "editable": false,
+   "id": "3_93",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "dhwTempTop",
+   "notificationConfigurable": true,
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "54"
+  },
+  {
+   "displayName": "Boilerpumpe Ansteuerung",
+   "editable": false,
+   "id": "3_144",
+   "maxVal": "32000",
+   "minVal": "-32000",
+   "name": "dhwPumpControl",
+   "parameterType": "NumValueObject",
+   "unit": "%",
+   "value": "0"
+  }
+ ],
+ "setupView": [
+  {
+   "displayName": "Gewünschte Boilertemperatur",
+   "editable": true,
+   "id": "7_339",
+   "maxVal": "100",
+   "minVal": "10",
+   "name": "setDhwTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "55"
+  },
+  {
+   "displayName": "Nachladen, wenn Boilertemperatur unter",
+   "editable": true,
+   "id": "7_342",
+   "maxVal": "90",
+   "minVal": "1",
+   "name": "reloadBelowTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "45"
+  }
+ ],
+ "standardName": "Boiler 01"
+}

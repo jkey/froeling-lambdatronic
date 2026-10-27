@@ -1,0 +1,69 @@
+[
+ {
+  "dtoType": "componentListing",
+  "componentId": "1_100",
+  "componentNumber": 1,
+  "displayCategory": "Kessel",
+  "displayName": "Kessel",
+  "standardName": "Kessel",
+  "subType": "PELLET",
+  "type": "BOILER"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "300_3100",
+  "componentNumber": 1,
+  "displayCategory": "Heizkreis",
+  "displayName": "Heizkreis 01",
+  "standardName": "Heizkreis 01",
+  "subType": "OUT_TEMP_CRTL",
+  "type": "CIRCUIT"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "300_3110",
+  "componentNumber": 2,
+  "displayCategory": "Heizkreis",
+  "displayName": "Heizkreis 02",
+  "standardName": "Heizkreis 02",
+  "subType": "OUT_TEMP_CRTL",
+  "type": "CIRCUIT"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "200_2100",
+  "componentNumber": 1,
+  "displayCategory": "Boiler",
+  "displayName": "Brauchwasser",
+  "standardName": "Boiler 01",
+  "type": "DHW"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "400_4100",
+  "componentNumber": 1,
+  "displayCategory": "Puffer",
+  "displayName": "Pufferspeicher",
+  "standardName": "Puffer 01",
+  "subType": "TWO_SENSORS",
+  "type": "BUFFER_TANK"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "1_906",
+  "componentNumber": 1,
+  "displayCategory": "Austragung",
+  "displayName": "Austragung",
+  "standardName": "Austragung",
+  "type": "FEED_SYSTEM"
+ },
+ {
+  "dtoType": "componentListing",
+  "componentId": "1_570",
+  "componentNumber": 1,
+  "displayCategory": "Zirku. Pumpe",
+  "displayName": "Zirku. Pumpe",
+  "standardName": "Zirku. Pumpe",
+  "type": "CIRCULATION_PUMP"
+ }
+]

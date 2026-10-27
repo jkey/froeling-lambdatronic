@@ -1,0 +1,78 @@
+{
+ "facilityName": "Home",
+ "displayPassword": "0000",
+ "pairingCode": "0000",
+ "inheritOwnerAddress": true,
+ "pictureUrl": "https://connect-api.froeling.com/connect/v1.0/resources/service/user/12345/facility/777/picture",
+ "owner": {
+  "address": {
+   "street": "Musterstraße 1",
+   "zip": "12345",
+   "city": "Musterstadt",
+   "country": "DE"
+  },
+  "contacts": [],
+  "firstname": "Max",
+  "surname": "Mustermann"
+ },
+ "systemInfo": {
+  "productType": {
+   "displayName": "Boiler type",
+   "value": "PE1 Pellet 20"
+  },
+  "equipmentNumber": {
+   "displayName": "Facility number",
+   "value": "100000001"
+  },
+  "coreModuleVersion": {
+   "displayName": "Core module version",
+   "value": "V 50.04 B 05.17 (05.04.2019)"
+  },
+  "touchVersion": {
+   "displayName": "Touch Version",
+   "value": "V 60.01 B 01.35.30"
+  },
+  "xmlVersion": {
+   "displayName": "XML Version",
+   "value": "3.0"
+  },
+  "facilityStructureSince": {
+   "displayName": "System structure since",
+   "value": "2021-05-01T10:00:00.250"
+  },
+  "facilityRegisteredSince": {
+   "displayName": "Anlage registriert seit",
+   "value": "2020-01-01 08:00:00.500"
+  },
+  "connectedSince": {
+   "displayName": "Connected since",
+   "value": "2025-01-01T06:00:00.125"
+  },
+  "lastUpdate": {
+   "displayName": "Last signal at",
+   "value": "2025-01-02T12:00:00.750"
+  }
+ },
+ "operatingData": {
+  "operationHours": {
+   "displayName": "Operation hours",
+   "value": "12000"
+  },
+  "hoursSinceLastMaintenance": {
+   "displayName": "Hours since last maintenance",
+   "value": "1000"
+  },
+  "boilerStarts": {
+   "displayName": "Number of burner starts",
+   "value": "8000"
+  },
+  "partialLoadHours": {
+   "displayName": "Hours in partial load (Boiler control variable < 40 %)",
+   "value": "500"
+  },
+  "hoursInPelletMode": {
+   "displayName": "Hours of heating",
+   "value": "10000"
+  }
+ }
+}

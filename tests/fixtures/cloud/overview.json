@@ -1,0 +1,685 @@
+{
+ "outTemp": {
+  "displayName": "Außentemperatur",
+  "unit": "°C",
+  "value": "11"
+ },
+ "components": [
+  {
+   "active": true,
+   "componentId": "1_100",
+   "componentNumber": 1,
+   "displayName": "Kessel",
+   "subType": "PELLET",
+   "type": "BOILER",
+   "state": {
+    "displayName": "Kesselzustand",
+    "displayValue": "Heizen",
+    "value": "3"
+   },
+   "mode2": {
+    "displayName": "Kessel Zustand",
+    "displayValue": "Automatik",
+    "value": "2"
+   },
+   "boilerTemp": {
+    "displayName": "Kesseltemperatur",
+    "unit": "°C",
+    "value": "68"
+   },
+   "boilerOn": {
+    "displayName": "Kessel EIN",
+    "displayValue": "Kessel EIN",
+    "value": "0"
+   },
+   "ignitionWhenBufferTempBelow": {
+    "displayName": "Zündung wenn Buffertemperatur unter",
+    "unit": "°C",
+    "value": "55.0"
+   },
+   "ignitionConfigured": {
+    "displayName": "Zündung konfiguriert",
+    "unit": "",
+    "value": "0"
+   }
+  },
+  {
+   "active": true,
+   "componentId": "300_3100",
+   "componentNumber": 1,
+   "displayCategory": "Heizkreis 01",
+   "displayName": "Heizkreis 01",
+   "subType": "OUT_TEMP_CRTL",
+   "type": "CIRCUIT",
+   "heatingPhase": [
+    {
+     "weekDay": "MONDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "TUESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "WEDNESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "THURSDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "FRIDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SATURDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SUNDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    }
+   ],
+   "mode": {
+    "displayName": "Betriebsart Heizkreis",
+    "displayValue": "Auto",
+    "value": "1"
+   },
+   "desiredRoomTemp": {
+    "displayName": "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist als",
+    "unit": "°C",
+    "value": "20"
+   },
+   "actualFlowTemp": {
+    "displayName": "Vorlauf-Isttemperatur",
+    "unit": "°C",
+    "value": "44"
+   },
+   "circuitPumpControl": {
+    "displayName": "Heizkreispumpe",
+    "unit": "",
+    "value": "1"
+   }
+  },
+  {
+   "active": true,
+   "componentId": "300_3110",
+   "componentNumber": 2,
+   "displayCategory": "Heizkreis 02",
+   "displayName": "Heizkreis 02",
+   "subType": "OUT_TEMP_CRTL",
+   "type": "CIRCUIT",
+   "heatingPhase": [
+    {
+     "weekDay": "MONDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "TUESDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "WEDNESDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "THURSDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "FRIDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SATURDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SUNDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    }
+   ],
+   "mode": {
+    "displayName": "Betriebsart Heizkreis",
+    "displayValue": "Auto",
+    "value": "1"
+   },
+   "desiredRoomTemp": {
+    "displayName": "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist als",
+    "unit": "°C",
+    "value": "20"
+   },
+   "actualFlowTemp": {
+    "displayName": "Vorlauf-Isttemperatur",
+    "unit": "°C",
+    "value": "28"
+   },
+   "circuitPumpControl": {
+    "displayName": "Heizkreispumpe",
+    "unit": "",
+    "value": "1"
+   }
+  },
+  {
+   "active": true,
+   "componentId": "200_2100",
+   "componentNumber": 1,
+   "displayCategory": "Boiler 01",
+   "displayName": "Brauchwasser",
+   "type": "DHW",
+   "heatingPhase": [
+    {
+     "weekDay": "MONDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "TUESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "WEDNESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "THURSDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "FRIDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SATURDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SUNDAY",
+     "phases": [
+      {
+       "startHour": 6,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    }
+   ],
+   "mode": {
+    "displayName": "Betriebsart Boiler",
+    "displayValue": "Auto",
+    "value": "1"
+   },
+   "setDhwTemp": {
+    "displayName": "Gewünschte Boilertemperatur",
+    "unit": "°C",
+    "value": "55"
+   },
+   "dhwPumpControl": {
+    "displayName": "Boilerpumpe Ansteuerung",
+    "unit": "%",
+    "value": "100"
+   },
+   "dhwTempTop": {
+    "displayName": "Boilertemperatur oben",
+    "unit": "°C",
+    "value": "55"
+   }
+  },
+  {
+   "active": true,
+   "componentId": "400_4100",
+   "componentNumber": 1,
+   "displayCategory": "Puffer 01",
+   "displayName": "Pufferspeicher",
+   "subType": "TWO_SENSORS",
+   "svgUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=buffer&bufferTempTop=63%C2%B0C&bufferTempBottom=46%C2%B0C&bufferTankChargeDiscrete=3&componentVariant=two_sensors_facility_overview",
+   "type": "BUFFER_TANK",
+   "heatingPhase": [
+    {
+     "weekDay": "MONDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "TUESDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "WEDNESDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "THURSDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "FRIDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SATURDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SUNDAY",
+     "phases": [
+      {
+       "startHour": 0,
+       "startMinute": 0,
+       "endHour": 24,
+       "endMinute": 0
+      }
+     ]
+    }
+   ],
+   "bufferTempTop": {
+    "displayName": "Puffertemperatur oben",
+    "unit": "°C",
+    "value": "63"
+   },
+   "bufferTempBottom": {
+    "displayName": "Puffertemperatur unten",
+    "unit": "°C",
+    "value": "46"
+   },
+   "bufferTankChargeDiskret": {
+    "displayName": "Pufferladezustand Diskret",
+    "unit": "",
+    "value": "3"
+   },
+   "bufferTankCharge": {
+    "displayName": "Pufferladezustand",
+    "unit": "%",
+    "value": "66"
+   },
+   "bufferPumpControl": {
+    "displayName": "Pufferpumpen Ansteuerung",
+    "unit": "%",
+    "value": "59"
+   }
+  },
+  {
+   "componentId": "1_906",
+   "componentNumber": 1,
+   "displayName": "Austragung",
+   "type": "FEED_SYSTEM",
+   "remainingPelletsAmount": {
+    "displayName": "Pelletlager Restbestand",
+    "unit": "t",
+    "value": "4.5"
+   },
+   "totalPelletConsumption": {
+    "displayName": "Pelletverbrauch Gesamt",
+    "unit": "t",
+    "value": "42.9"
+   },
+   "pelletsUsageCounter": {
+    "displayName": "Pelletverbrauch-Zähler",
+    "unit": "t",
+    "value": "1.142"
+   }
+  },
+  {
+   "active": true,
+   "componentId": "1_570",
+   "componentNumber": 1,
+   "displayName": "Zirku. Pumpe",
+   "type": "CIRCULATION_PUMP",
+   "heatingPhase": [
+    {
+     "weekDay": "MONDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "TUESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "WEDNESDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "THURSDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "FRIDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SATURDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    },
+    {
+     "weekDay": "SUNDAY",
+     "phases": [
+      {
+       "startHour": 4,
+       "startMinute": 30,
+       "endHour": 9,
+       "endMinute": 0
+      },
+      {
+       "startHour": 11,
+       "startMinute": 0,
+       "endHour": 13,
+       "endMinute": 0
+      },
+      {
+       "startHour": 16,
+       "startMinute": 0,
+       "endHour": 22,
+       "endMinute": 0
+      }
+     ]
+    }
+   ],
+   "returnTemp": {
+    "displayName": "Rücklauftemperatur an der Zirkulations Leitung",
+    "unit": "°C",
+    "value": "0"
+   },
+   "pumpControl": {
+    "displayName": "Drehzahl der Zirkulations Pumpe",
+    "unit": "%",
+    "value": "100"
+   }
+  }
+ ]
+}

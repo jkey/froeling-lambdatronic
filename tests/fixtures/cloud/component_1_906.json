@@ -1,0 +1,254 @@
+{
+ "componentId": "1_906",
+ "displayName": "Austragung",
+ "displayCategory": "Austragung",
+ "componentNumber": 1,
+ "type": "FEED_SYSTEM",
+ "topView": {
+  "pictureUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=feed-system&remainingPelletsAmount=4.5t&fillLevel=100%25&pelletsUsageCounter=1.1t",
+  "pictureParams": {
+   "pelletsUsageCounter": {
+    "displayName": "Pelletverbrauch-Zähler",
+    "editable": false,
+    "id": "CAL_FS_1",
+    "maxVal": "0",
+    "minVal": "0",
+    "name": "pelletsUsageCounter",
+    "parameterType": "NumValueObject",
+    "unit": "t",
+    "value": "1.13"
+   },
+   "pelletsFillLevel": {
+    "displayName": "Füllstand im Pelletsbehälter",
+    "editable": false,
+    "id": "3_113",
+    "maxVal": "154.6",
+    "minVal": "-154.6",
+    "name": "pelletsFillLevel",
+    "parameterType": "NumValueObject",
+    "unit": "%",
+    "value": "100.0"
+   },
+   "remainingPelletsAmount": {
+    "displayName": "Pelletlager Restbestand",
+    "editable": true,
+    "id": "7_1121",
+    "maxVal": "100.0",
+    "minVal": "0.0",
+    "name": "remainingPelletsAmount",
+    "parameterType": "NumValueObject",
+    "unit": "t",
+    "value": "4.5"
+   }
+  },
+  "infoParams": {
+   "minLevel": {
+    "displayName": "Pelletlager Mindestbestand",
+    "editable": true,
+    "id": "7_1205",
+    "maxVal": "100.0",
+    "minVal": "0.0",
+    "name": "minLevel",
+    "parameterType": "NumValueObject",
+    "unit": "t",
+    "value": "0.0"
+   },
+   "totalPelletConsumption": {
+    "displayName": "Pelletverbrauch Gesamt",
+    "editable": false,
+    "id": "3_276",
+    "maxVal": "3200.0",
+    "minVal": "-3200.0",
+    "name": "totalPelletConsumption",
+    "parameterType": "NumValueObject",
+    "unit": "t",
+    "value": "42.9"
+   },
+   "startFirstFilling": {
+    "displayName": "Start der 1. Pelletsbefüllung",
+    "editable": true,
+    "id": "10_60",
+    "maxVal": "24:00",
+    "minVal": "00:00",
+    "name": "startFirstFilling",
+    "parameterType": "TimeValueObject",
+    "unit": "",
+    "value": "10:00"
+   },
+   "startSecondFilling": {
+    "displayName": "Start der 2. Pelletsbefüllung",
+    "editable": true,
+    "id": "10_516",
+    "maxVal": "24:00",
+    "minVal": "00:00",
+    "name": "startSecondFilling",
+    "parameterType": "TimeValueObject",
+    "unit": "",
+    "value": "22:00"
+   }
+  },
+  "configParams": {
+   "resetCounter": {
+    "displayName": "Zähler RESET",
+    "editable": true,
+    "id": "8_1125",
+    "maxVal": "1",
+    "minVal": "0",
+    "name": "resetCounter",
+    "parameterType": "StringValueObject",
+    "stringListKeyValues": {
+     "0": "NEIN",
+     "1": "JA"
+    },
+    "unit": "",
+    "value": "0"
+   },
+   "remainingPelletsAmount": {
+    "displayName": "Pelletlager Restbestand",
+    "editable": true,
+    "id": "7_1121",
+    "maxVal": "100.0",
+    "minVal": "0.0",
+    "name": "remainingPelletsAmount",
+    "parameterType": "NumValueObject",
+    "unit": "t",
+    "value": "4.5"
+   }
+  }
+ },
+ "timeWindowsView": [],
+ "stateView": [
+  {
+   "displayName": "Füllstand im Pelletsbehälter",
+   "editable": false,
+   "id": "3_113",
+   "maxVal": "154.6",
+   "minVal": "-154.6",
+   "name": "pelletsFillLevel",
+   "parameterType": "NumValueObject",
+   "unit": "%",
+   "value": "100.0"
+  },
+  {
+   "displayName": "Resetierbarer t-Zähler:",
+   "editable": false,
+   "id": "3_274",
+   "maxVal": "32000",
+   "minVal": "-32000",
+   "name": "tonsCounter",
+   "parameterType": "NumValueObject",
+   "unit": "t",
+   "value": "1"
+  },
+  {
+   "displayName": "Resetierbarer kg-Zähler:",
+   "editable": false,
+   "id": "3_273",
+   "maxVal": "32000",
+   "minVal": "-32000",
+   "name": "kgCounter",
+   "parameterType": "NumValueObject",
+   "unit": "kg",
+   "value": "130"
+  },
+  {
+   "displayName": "Zähler RESET",
+   "editable": true,
+   "id": "8_1125",
+   "maxVal": "1",
+   "minVal": "0",
+   "name": "resetCounter",
+   "parameterType": "StringValueObject",
+   "stringListKeyValues": {
+    "0": "NEIN",
+    "1": "JA"
+   },
+   "unit": "",
+   "value": "0"
+  },
+  {
+   "displayName": "Pelletlager Restbestand",
+   "editable": true,
+   "id": "7_1121",
+   "maxVal": "100.0",
+   "minVal": "0.0",
+   "name": "remainingPelletsAmount",
+   "parameterType": "NumValueObject",
+   "unit": "t",
+   "value": "4.5"
+  },
+  {
+   "displayName": "Pelletlager Mindestbestand",
+   "editable": true,
+   "id": "7_1205",
+   "maxVal": "100.0",
+   "minVal": "0.0",
+   "name": "minLevel",
+   "parameterType": "NumValueObject",
+   "unit": "t",
+   "value": "0.0"
+  },
+  {
+   "displayName": "Pelletverbrauch Gesamt",
+   "editable": false,
+   "id": "3_276",
+   "maxVal": "3200.0",
+   "minVal": "-3200.0",
+   "name": "totalPelletConsumption",
+   "parameterType": "NumValueObject",
+   "unit": "t",
+   "value": "42.9"
+  },
+  {
+   "displayName": "Pelletverbrauch-Zähler",
+   "editable": false,
+   "id": "CAL_FS_1",
+   "maxVal": "0",
+   "minVal": "0",
+   "name": "pelletsUsageCounter",
+   "parameterType": "NumValueObject",
+   "unit": "t",
+   "value": "1.13"
+  }
+ ],
+ "setupView": [
+  {
+   "displayName": "Start der 1. Pelletsbefüllung",
+   "editable": true,
+   "id": "10_60",
+   "maxVal": "24:00",
+   "minVal": "00:00",
+   "name": "startFirstFilling",
+   "parameterType": "TimeValueObject",
+   "unit": "",
+   "value": "10:00"
+  },
+  {
+   "displayName": "Start der 2. Pelletsbefüllung",
+   "editable": true,
+   "id": "10_516",
+   "maxVal": "24:00",
+   "minVal": "00:00",
+   "name": "startSecondFilling",
+   "parameterType": "TimeValueObject",
+   "unit": "",
+   "value": "22:00"
+  },
+  {
+   "displayName": "Automatische Pelletsaustragung deaktivieren",
+   "editable": true,
+   "id": "8_973",
+   "maxVal": "1",
+   "minVal": "0",
+   "name": "autoFeederOff",
+   "parameterType": "StringValueObject",
+   "stringListKeyValues": {
+    "0": "NEIN",
+    "1": "JA"
+   },
+   "unit": "",
+   "value": "0"
+  }
+ ],
+ "standardName": "Austragung"
+}

@@ -1,0 +1,267 @@
+{
+ "componentId": "1_570",
+ "displayName": "Zirku. Pumpe",
+ "displayCategory": "Zirku. Pumpe",
+ "componentNumber": 1,
+ "type": "CIRCULATION_PUMP",
+ "topView": {
+  "pictureUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=circulation-pump&returnTemp=0%C2%B0C&pumpControl=0%25&isPumpActive=false",
+  "pictureParams": {
+   "returnTemp": {
+    "displayName": "Rücklauftemperatur an der Zirkulations Leitung",
+    "editable": false,
+    "id": "3_202",
+    "maxVal": "16000",
+    "minVal": "-16000",
+    "name": "returnTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "0"
+   },
+   "pumpControl": {
+    "displayName": "Drehzahl der Zirkulations Pumpe",
+    "editable": false,
+    "id": "3_201",
+    "maxVal": "32000",
+    "minVal": "-32000",
+    "name": "pumpControl",
+    "parameterType": "NumValueObject",
+    "unit": "%",
+    "value": "0"
+   }
+  },
+  "infoParams": {
+   "pumpOffAboveTemp": {
+    "displayName": "Bei welcher RL Temperatur an der Zirkulationsleitung soll die Pumpe ausschalten",
+    "editable": true,
+    "id": "7_752",
+    "maxVal": "120",
+    "minVal": "20",
+    "name": "pumpOffAboveTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "35"
+   }
+  },
+  "configParams": {}
+ },
+ "timeWindowsView": [
+  {
+   "id": 217,
+   "weekDay": "MONDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 218,
+   "weekDay": "TUESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 219,
+   "weekDay": "WEDNESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 220,
+   "weekDay": "THURSDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 221,
+   "weekDay": "FRIDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 222,
+   "weekDay": "SATURDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 223,
+   "weekDay": "SUNDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 9,
+     "endMinute": 0
+    },
+    {
+     "startHour": 11,
+     "startMinute": 0,
+     "endHour": 13,
+     "endMinute": 0
+    },
+    {
+     "startHour": 16,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  }
+ ],
+ "stateView": [
+  {
+   "displayName": "Rücklauftemperatur an der Zirkulations Leitung",
+   "editable": false,
+   "id": "3_202",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "returnTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "0"
+  },
+  {
+   "displayName": "Strömungsschalter an der Brauchwasser Leitung",
+   "editable": false,
+   "id": "3_210",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "dhwFlowSwitch",
+   "parameterType": "NumValueObject",
+   "unit": "",
+   "value": "0"
+  },
+  {
+   "displayName": "Drehzahl der Zirkulations Pumpe",
+   "editable": false,
+   "id": "3_201",
+   "maxVal": "32000",
+   "minVal": "-32000",
+   "name": "pumpControl",
+   "parameterType": "NumValueObject",
+   "unit": "%",
+   "value": "0"
+  }
+ ],
+ "setupView": [
+  {
+   "displayName": "Bei welcher RL Temperatur an der Zirkulationsleitung soll die Pumpe ausschalten",
+   "editable": true,
+   "id": "7_752",
+   "maxVal": "120",
+   "minVal": "20",
+   "name": "pumpOffAboveTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "35"
+  }
+ ],
+ "standardName": "Zirku. Pumpe"
+}

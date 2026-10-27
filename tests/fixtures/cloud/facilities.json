@@ -1,0 +1,28 @@
+[
+ {
+  "facilityId": 777,
+  "equipmentNumber": "100000001",
+  "status": "OK",
+  "name": "Home",
+  "address": {
+   "street": "Musterstraße 1",
+   "zip": "12345",
+   "city": "Musterstadt",
+   "country": "DE"
+  },
+  "owner": "Max Mustermann",
+  "role": "OWNER",
+  "favorite": true,
+  "allowMessages": true,
+  "subscribedNotifications": true,
+  "pictureUrl": "https://connect-api.froeling.com/connect/v1.0/resources/service/user/12345/facility/777/picture",
+  "facilityGeneration": "GEN_3200",
+  "protocol3200Info": {
+   "hoursSinceLastMaintenance": "1000",
+   "operationHours": "12000",
+   "active": false,
+   "productType": "PE1 Pellet 20",
+   "status": "OK"
+  }
+ }
+]

@@ -1,0 +1,22 @@
+{
+ "address": {
+  "street": "Musterstraße 1",
+  "zip": "12345",
+  "city": "Musterstadt",
+  "country": "DE"
+ },
+ "allowMessages": true,
+ "connectState": "ONLINE",
+ "equipmentNumber": "100000001",
+ "facilityGeneration": "GEN_3200",
+ "facilityName": "Home",
+ "lastSignal": "2025-01-02T12:00:00.750Z",
+ "licenseRequired": null,
+ "lockType": null,
+ "pictureUrl": "https://connect-api.froeling.com/connect/v1.0/resources/service/user/12345/facility/777/picture",
+ "roles": [
+  "OWNER"
+ ],
+ "status": "OK",
+ "xmlVersion": "3.0"
+}

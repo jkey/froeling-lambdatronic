@@ -1,0 +1,329 @@
+{
+ "componentId": "300_3100",
+ "displayName": "Heizkreis 01",
+ "displayCategory": "Heizkreis",
+ "componentNumber": 1,
+ "type": "CIRCUIT",
+ "subType": "OUT_TEMP_CRTL",
+ "topView": {
+  "pictureUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=circuit&outAirTemp=9%C2%B0C&actualFlowTemp=37%C2%B0C&roomTemp=-&isRoomSensorAvailable=false&pumpControl=0&isPumpActive=false",
+  "pictureParams": {
+   "actualFlowTemp": {
+    "displayName": "Vorlauf-Isttemperatur",
+    "editable": false,
+    "id": "3_21",
+    "maxVal": "16000",
+    "minVal": "-16000",
+    "name": "actualFlowTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "37"
+   },
+   "outAirTemp": {
+    "displayName": "Außentemperatur",
+    "editable": false,
+    "id": "3_4",
+    "maxVal": "16000",
+    "minVal": "-16000",
+    "name": "outAirTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "9"
+   },
+   "circuitPumpControl": {
+    "displayName": "Heizkreispumpe",
+    "editable": false,
+    "id": "17_0",
+    "maxVal": "1",
+    "minVal": "0",
+    "name": "circuitPumpControl",
+    "parameterType": "NumValueObject",
+    "unit": "",
+    "value": "0"
+   }
+  },
+  "infoParams": {
+   "setFlowTemp": {
+    "displayName": "Vorlauf-Solltemperatur",
+    "editable": false,
+    "id": "3_22",
+    "maxVal": "16000",
+    "minVal": "-16000",
+    "name": "setFlowTemp",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "0"
+   }
+  },
+  "configParams": {
+   "mode": {
+    "displayName": "Betriebsart Heizkreis",
+    "editable": true,
+    "id": "9_9989",
+    "maxVal": "5",
+    "minVal": "0",
+    "name": "mode",
+    "parameterType": "StringValueObject",
+    "stringListKeyValues": {
+     "0": "AUS",
+     "1": "Auto",
+     "2": "Extraheizen",
+     "3": "Absenken",
+     "4": "Dauerabsenken",
+     "5": "Party"
+    },
+    "unit": "",
+    "value": "1"
+   },
+   "flowTempAtMinus10": {
+    "displayName": "Gewünschte Vorlauf-temperatur bei -10°C Außentemperatur",
+    "editable": true,
+    "id": "7_87",
+    "maxVal": "110",
+    "minVal": "10",
+    "name": "flowTempAtMinus10",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "63"
+   },
+   "flowTempAtPlus10": {
+    "displayName": "Gewünschte Vorlauf-temperatur bei +10°C Außentemperatur",
+    "editable": true,
+    "id": "7_88",
+    "maxVal": "110",
+    "minVal": "10",
+    "name": "flowTempAtPlus10",
+    "parameterType": "NumValueObject",
+    "unit": "°C",
+    "value": "46"
+   },
+   "editable": {
+    "displayName": "Betriebsart HK editierbar",
+    "editable": false,
+    "id": "100012_9698",
+    "maxVal": "1",
+    "minVal": "0",
+    "name": "editable",
+    "parameterType": "StringValueObject",
+    "stringListKeyValues": {
+     "0": "0",
+     "1": "1"
+    },
+    "unit": "",
+    "value": "1"
+   }
+  }
+ },
+ "timeWindowsView": [
+  {
+   "id": 56,
+   "weekDay": "MONDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 57,
+   "weekDay": "TUESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 58,
+   "weekDay": "WEDNESDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 59,
+   "weekDay": "THURSDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 60,
+   "weekDay": "FRIDAY",
+   "phases": [
+    {
+     "startHour": 4,
+     "startMinute": 30,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 61,
+   "weekDay": "SATURDAY",
+   "phases": [
+    {
+     "startHour": 6,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  },
+  {
+   "id": 62,
+   "weekDay": "SUNDAY",
+   "phases": [
+    {
+     "startHour": 6,
+     "startMinute": 0,
+     "endHour": 22,
+     "endMinute": 0
+    }
+   ]
+  }
+ ],
+ "stateView": [
+  {
+   "displayName": "Vorlauf-Isttemperatur",
+   "editable": false,
+   "id": "3_21",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "actualFlowTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "37"
+  },
+  {
+   "displayName": "Vorlauf-Solltemperatur",
+   "editable": false,
+   "id": "3_22",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "setFlowTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "0"
+  },
+  {
+   "displayName": "Außentemperatur",
+   "editable": false,
+   "id": "3_4",
+   "maxVal": "16000",
+   "minVal": "-16000",
+   "name": "outAirTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "9"
+  }
+ ],
+ "setupView": [
+  {
+   "displayName": "Gewünschte Vorlauf-temperatur bei -10°C Außentemperatur",
+   "editable": true,
+   "id": "7_87",
+   "maxVal": "110",
+   "minVal": "10",
+   "name": "flowTempAtMinus10",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "63"
+  },
+  {
+   "displayName": "Gewünschte Vorlauf-temperatur bei +10°C Außentemperatur",
+   "editable": true,
+   "id": "7_88",
+   "maxVal": "110",
+   "minVal": "10",
+   "name": "flowTempAtPlus10",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "46"
+  },
+  {
+   "displayName": "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist als",
+   "editable": true,
+   "id": "7_76",
+   "maxVal": "30",
+   "minVal": "10",
+   "name": "desiredRoomTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "20"
+  },
+  {
+   "displayName": "Absenkung der Vorlauftemperatur im Absenkbetrieb",
+   "editable": true,
+   "id": "7_79",
+   "maxVal": "70",
+   "minVal": "0",
+   "name": "setbackReductionFlowTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "15"
+  },
+  {
+   "displayName": "Außentemperatur, unter der die Heizkreispumpe im Heizbetrieb einschaltet",
+   "editable": true,
+   "id": "7_80",
+   "maxVal": "50",
+   "minVal": "-20",
+   "name": "circuitPumpOnOutAirTempLimitHeating",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "20"
+  },
+  {
+   "displayName": "Außentemperatur, unter der die Heizkreispumpe im Absenkbetrieb einschaltet",
+   "editable": true,
+   "id": "7_81",
+   "maxVal": "50",
+   "minVal": "-20",
+   "name": "circuitPumpOnOutAirTempLimitSetback",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "7"
+  },
+  {
+   "displayName": "Frostschutztemperatur",
+   "editable": true,
+   "id": "7_86",
+   "maxVal": "20",
+   "minVal": "-10",
+   "name": "frostProtectionTemp",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "10"
+  },
+  {
+   "displayName": "Temp. am Puffer oben ab der der Überhitzungsschutz aktiv wird",
+   "editable": true,
+   "id": "7_1419",
+   "maxVal": "120",
+   "minVal": "60",
+   "name": "bufferOverheatingProtection",
+   "parameterType": "NumValueObject",
+   "unit": "°C",
+   "value": "120"
+  }
+ ],
+ "standardName": "Heizkreis 01"
+}

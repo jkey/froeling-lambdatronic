@@ -1,0 +1,17 @@
+[
+ {
+  "errorId": 1,
+  "dateTime": "2026-10-20T08:15:00",
+  "type": 1,
+  "message": "Kessel Übertemperatur",
+  "resolutions": "Kesselfühler und Pumpen prüfen"
+ },
+ {
+  "errorId": 2,
+  "dateTime": "2026-10-21T17:40:12.345",
+  "type": 2,
+  "message": "Pelletlager Mindestbestand erreicht",
+  "resolutions": "Pellets bestellen",
+  "isAcknowledged": true
+ }
+]
