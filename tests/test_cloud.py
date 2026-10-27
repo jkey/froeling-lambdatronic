@@ -7,6 +7,8 @@ import socket
 from collections import defaultdict, deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, time
+from pathlib import Path
 from typing import Any
 
 import aiohttp
@@ -21,12 +23,16 @@ from froeling_lambdatronic.cloud import (
     FroelingConnectClient,
     OperatingMode,
 )
+from froeling_lambdatronic.cloud_models import Phase, Weekday
 from froeling_lambdatronic.exceptions import (
     AuthenticationError,
     CloudParameterNotFoundError,
     CommunicationError,
     ConnectionFailedError,
+    RateLimitedError,
     RemoteControlDisabledError,
+    ValueOutOfRangeError,
+    WriteRejectedError,
 )
 
 USER = 12345
@@ -36,6 +42,13 @@ FACILITIES = f"/connect/v1.0/resources/service/user/{USER}/facility"
 COMPONENTS = f"/fcs/v1.0/resources/user/{USER}/facility/{FACILITY}/componentList"
 COMPONENT = f"/fcs/v1.0/resources/user/{USER}/facility/{FACILITY}/component/1_100"
 PARAMETER = f"/fcs/v1.0/resources/user/{USER}/facility/{FACILITY}/parameter/100011_9963"
+FCS = f"/fcs/v1.0/resources/user/{USER}/facility/{FACILITY}"
+OVERVIEW = FCS + "/overview"
+TIME_WINDOWS = FCS + "/timeWindows"
+INFO = f"/connect/v2.0/resources/service/user/{USER}/facility/{FACILITY}/info"
+HEADER = f"/connect/v1.0/resources/service/user/{USER}/facility/{FACILITY}/header"
+ERRORS = FCS + "/error"
+CLOUD_FIXTURES = Path(__file__).parent / "fixtures" / "cloud"
 
 
 @dataclass
@@ -401,3 +414,365 @@ async def test_set_operating_mode_without_parameter_id(env: Env) -> None:
     with pytest.raises(CommunicationError):
         await env.client().set_operating_mode(FACILITY, OperatingMode.AUTOMATIC)
     assert env.state.received("PUT", PARAMETER) == []
+
+
+# --- Fröling Connect 0.2.0: components, snapshot, writing, schedules ------------------------------------
+
+
+def fixture(name: str) -> Any:
+    return json.loads((CLOUD_FIXTURES / name).read_text())
+
+
+def detail_path(component_id: str) -> str:
+    return f"{FCS}/component/{component_id}"
+
+
+def parameter_path(parameter_id: str) -> str:
+    return f"{FCS}/parameter/{parameter_id}"
+
+
+def serve_list(state: ServerState) -> None:
+    state.add("GET", COMPONENTS, Reply(payload=fixture("component_list.json")))
+
+
+def serve_detail(state: ServerState, component_id: str, payload: Any = None) -> None:
+    data = payload if payload is not None else fixture(f"component_{component_id}.json")
+    state.add("GET", detail_path(component_id), Reply(payload=data))
+
+
+def boiler_with_remote(remote: str) -> dict[str, Any]:
+    data: dict[str, Any] = fixture("component_1_100.json")
+    data["topView"]["configParams"]["remoteOn"]["value"] = remote
+    return data
+
+
+async def test_facility_equipment_number(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", FACILITIES, Reply(payload=fixture("facilities.json")))
+    assert await env.client().get_facilities() == [Facility(FACILITY, "Home", "PE1 Pellet 20", "100000001")]
+    login_ok(env.state)
+    env.state.add("GET", FACILITIES, Reply(payload=[{"facilityId": FACILITY, "equipmentNumber": 100}]))
+    with pytest.raises(CommunicationError):
+        await env.client().get_facilities()
+
+
+async def test_read_endpoints(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    env.state.add("GET", INFO, Reply(payload=fixture("info.json")))
+    env.state.add("GET", HEADER, Reply(payload=fixture("header.json")))
+    env.state.add("GET", ERRORS, Reply(payload=fixture("errors.json")))
+    client = env.client()
+    components = await client.get_components(FACILITY)
+    assert [c.key for c in components][:3] == ["boiler", "hc1", "hc2"]
+    detail = await client.get_component_detail(FACILITY, "300_3100")
+    assert detail.parameters["flowTempAtPlus10"].id == "7_88"
+    overview = await client.get_overview(FACILITY)
+    assert overview.outside_temperature == "11"
+    info = await client.get_system_info(FACILITY)
+    assert info.equipment_number == "100000001"
+    header = await client.get_header(FACILITY)
+    assert header.online
+    assert header.last_signal == datetime(2025, 1, 2, 12, 0, 0, 750000, tzinfo=UTC)
+    errors = await client.get_errors(FACILITY)
+    assert [e.severity for e in errors] == ["alarm", "warning"]
+
+
+@pytest.mark.parametrize(
+    ("headers", "retry_after"),
+    [({"Retry-After": "30"}, 30.0), ({}, None), ({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, None)],
+)
+async def test_rate_limited(env: Env, headers: dict[str, str], retry_after: float | None) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(status=429, headers=headers))
+    with pytest.raises(RateLimitedError) as err:
+        await env.client().get_overview(FACILITY)
+    assert err.value.retry_after == retry_after
+
+
+async def test_rate_limited_login(env: Env) -> None:
+    env.state.add("POST", LOGIN, Reply(status=429, headers={"Retry-After": "5"}))
+    with pytest.raises(RateLimitedError) as err:
+        await env.client().login()
+    assert err.value.retry_after == 5.0
+
+
+async def test_read_snapshot_overview_only(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    snapshot = await env.client().read_snapshot(FACILITY, details=False)
+    assert not snapshot.details_loaded
+    assert snapshot.value("pellet_counter") == 1142.0
+    assert env.state.received("GET", COMPONENTS) == []
+
+
+async def test_read_snapshot_with_details(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    components = [
+        *fixture("component_list.json"),
+        {"componentId": "9_9", "componentNumber": 1, "type": "SOLAR"},
+    ]
+    env.state.add("GET", COMPONENTS, Reply(payload=components))
+    for component in components[:-1]:
+        if component["componentId"] != "300_3110":
+            serve_detail(env.state, component["componentId"])
+    client = env.client()
+    snapshot = await client.read_snapshot(FACILITY, details=True, skip={"hc2"})
+    assert snapshot.details_loaded
+    assert snapshot.value("hc1_curve_flow_plus10") == 46.0
+    assert snapshot.value("hc2_curve_flow_plus10") is None
+    assert snapshot.value("hc2_flow_temperature") == 28.0  # from the overview
+    assert env.state.received("GET", detail_path("300_3110")) == []
+    assert env.state.received("GET", detail_path("9_9")) == []
+    # The details are cached for writing: no further GET of the component.
+    env.state.add("PUT", parameter_path("7_88"), Reply(status=304))
+    await client.set_value(FACILITY, "hc1_curve_flow_plus10", 46)
+    assert len(env.state.received("GET", detail_path("300_3100"))) == 1
+    assert len(env.state.received("GET", COMPONENTS)) == 1
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "target", "sent"),
+    [
+        ("hc1_curve_flow_plus10", 47, ("300_3100", "7_88"), "47"),
+        ("hc2_heating_limit", -2.5, ("300_3110", "7_94"), "-2.5"),
+        ("hc1_operating_mode", 3, ("300_3100", "9_9989"), "3"),
+        ("pellet_stock", 4.5, ("1_906", "7_1121"), "4.5"),
+        ("pellet_filling_start_2", time(21, 30), ("1_906", "10_516"), "21:30"),
+        ("auto_feeder_off", True, ("1_906", "8_973"), "1"),
+        ("reset_pellet_counter", True, ("1_906", "8_1125"), "1"),
+        ("dhw1_mode", 2, ("200_2100", "9_9971"), "2"),
+        ("circulation_pump_off_above", 40.0, ("1_570", "7_752"), "40"),
+        ("buffer1_circuit_release", 35, ("400_4100", "7_443"), "35"),
+    ],
+)
+async def test_set_value(env: Env, key: str, value: float | time, target: tuple[str, str], sent: str) -> None:
+    component_id, parameter_id = target
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, component_id)
+    if component_id != "1_100":
+        serve_detail(env.state, "1_100")
+    env.state.add("PUT", parameter_path(parameter_id), Reply(payload={}))
+    await env.client().set_value(FACILITY, key, value)
+    assert env.state.received("PUT", parameter_path(parameter_id))[0].json == {"value": sent}
+
+
+async def test_set_value_on_boiler_and_inverted_bool(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_100")
+    env.state.add("PUT", parameter_path("995_9887"), Reply(status=304))
+    env.state.add("PUT", parameter_path("7_480"), Reply(payload={}))
+    client = env.client()
+    await client.set_value(FACILITY, "boiler_on", False)
+    await client.set_value(FACILITY, "boiler_setpoint", 72.5)
+    assert env.state.received("PUT", parameter_path("995_9887"))[0].json == {"value": "1"}
+    assert env.state.received("PUT", parameter_path("7_480"))[0].json == {"value": "72.5"}
+    assert len(env.state.received("GET", detail_path("1_100"))) == 1
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "error"),
+    [
+        ("hc1_curve_flow_plus10", 111, ValueOutOfRangeError),
+        ("hc1_curve_flow_plus10", float("nan"), ValueOutOfRangeError),
+        ("hc1_operating_mode", 6, ValueOutOfRangeError),
+        ("hc1_flow_temperature", 40, WriteRejectedError),
+        ("hc1_curve_flow_plus10", time(10, 0), TypeError),
+        ("hc1_pump", True, WriteRejectedError),
+        ("hc1_operating_mode", 1.5, TypeError),
+    ],
+)
+async def test_set_value_is_validated_before_sending(
+    env: Env, key: str, value: float | time, error: type[Exception]
+) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    serve_detail(env.state, "1_100")
+    with pytest.raises(error):
+        await env.client().set_value(FACILITY, key, value)
+    assert [r for r in env.state.requests if r.method == "PUT"] == []
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("pellet_filling_start_1", 600),
+        ("auto_feeder_off", 1),
+        ("pellet_stock", True),
+    ],
+)
+async def test_set_value_type_checks_on_feed(env: Env, key: str, value: float) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_906")
+    with pytest.raises(TypeError):
+        await env.client().set_value(FACILITY, key, value)
+
+
+async def test_set_value_out_of_range_reports_library_units(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_906")
+    with pytest.raises(ValueOutOfRangeError) as err:
+        await env.client().set_value(FACILITY, "pellet_stock", 100.5)
+    assert (err.value.minimum, err.value.maximum) == (0.0, 100.0)
+
+
+async def test_set_value_unknown_key(env: Env) -> None:
+    with pytest.raises(ValueError, match="no Fröling Connect parameter"):
+        await env.client().set_value(FACILITY, "hc1_room_setpoint_heating", 20)
+    assert env.state.requests == []
+
+
+async def test_set_value_missing_component_and_parameter(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_list(env.state)
+    client = env.client()
+    with pytest.raises(CloudParameterNotFoundError, match="hc3"):
+        await client.set_value(FACILITY, "hc3_curve_flow_plus10", 40)
+    assert len(env.state.received("GET", COMPONENTS)) == 1
+    with pytest.raises(CloudParameterNotFoundError, match="hc3"):
+        await client.set_value(FACILITY, "hc3_curve_flow_plus10", 40)
+    assert len(env.state.received("GET", COMPONENTS)) == 2  # the cached list is refreshed once
+    detail = fixture("component_300_3100.json")
+    detail["setupView"] = [p for p in detail["setupView"] if p["name"] != "frostProtectionTemp"]
+    serve_detail(env.state, "300_3100", detail)
+    with pytest.raises(CloudParameterNotFoundError, match="frostProtectionTemp"):
+        await client.set_value(FACILITY, "hc1_frost_protection", 5)
+
+
+async def test_set_value_requires_remote_control(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    serve_detail(env.state, "1_100", boiler_with_remote("0"))
+    client = env.client()
+    with pytest.raises(RemoteControlDisabledError):
+        await client.set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    assert len(env.state.received("GET", detail_path("1_100"))) == 1
+    # A cached "disabled" is re-read once before giving up.
+    serve_detail(env.state, "1_100", boiler_with_remote("1"))
+    env.state.add("PUT", parameter_path("7_88"), Reply(payload={}))
+    await client.set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    assert len(env.state.received("GET", detail_path("1_100"))) == 2
+    boiler = fixture("component_1_100.json")
+    del boiler["topView"]["configParams"]["remoteOn"]
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_100", boiler)
+    with pytest.raises(CloudParameterNotFoundError, match="remoteOn"):
+        await env.client().set_value(FACILITY, "boiler_setpoint", 70)
+
+
+async def test_set_value_without_boiler_component(env: Env) -> None:
+    login_ok(env.state)
+    components = [c for c in fixture("component_list.json") if c["type"] != "BOILER"]
+    env.state.add("GET", COMPONENTS, Reply(payload=components))
+    serve_detail(env.state, "1_906")
+    with pytest.raises(CloudParameterNotFoundError, match="boiler"):
+        await env.client().set_value(FACILITY, "pellet_stock", 4)
+
+
+async def test_set_value_refreshes_stale_parameter_id(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    stale = fixture("component_300_3100.json")
+    for parameter in stale["setupView"]:
+        if parameter["name"] == "flowTempAtPlus10":
+            parameter["id"] = "7_old"
+    serve_detail(env.state, "300_3100", stale)
+    serve_detail(env.state, "1_100")
+    env.state.add("PUT", parameter_path("7_old"), Reply(status=404))
+    serve_detail(env.state, "300_3100")
+    env.state.add("PUT", parameter_path("7_88"), Reply(payload={}))
+    await env.client().set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    assert env.state.received("PUT", parameter_path("7_88"))[0].json == {"value": "47"}
+    # A second 404 is reported.
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    serve_detail(env.state, "1_100")
+    env.state.add("PUT", parameter_path("7_88"), Reply(status=404))
+    serve_detail(env.state, "300_3100")
+    env.state.add("PUT", parameter_path("7_88"), Reply(status=404))
+    with pytest.raises(ConnectionFailedError):
+        await env.client().set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+
+
+async def test_get_schedule(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_570")
+    schedule = await env.client().get_schedule(FACILITY, "circulation")
+    assert schedule[Weekday.SUNDAY] == (Phase(270, 540), Phase(660, 780), Phase(960, 1320))
+    login_ok(env.state)
+    serve_list(env.state)
+    with pytest.raises(CloudParameterNotFoundError, match="hc5"):
+        await env.client().get_schedule(FACILITY, "hc5")
+
+
+async def test_set_schedule(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3110")
+    serve_detail(env.state, "1_100")
+    env.state.add("POST", TIME_WINDOWS, Reply(payload={"updatedTimeWindowIds": [63, 69]}))
+    changes = {
+        Weekday.MONDAY: [Phase(330, 480), Phase(960, 1440)],
+        Weekday.SUNDAY: [],
+    }
+    await env.client().set_schedule(FACILITY, "hc2", changes)
+    (post,) = env.state.received("POST", TIME_WINDOWS)
+    assert [day["weekDay"] for day in post.json] == [d.value for d in Weekday]
+    assert [day["id"] for day in post.json] == list(range(63, 70))
+    assert post.json[0]["phases"] == [
+        {"startHour": 5, "startMinute": 30, "endHour": 8, "endMinute": 0},
+        {"startHour": 16, "startMinute": 0, "endHour": 24, "endMinute": 0},
+    ]
+    assert post.json[1]["phases"] == [{"startHour": 6, "startMinute": 0, "endHour": 22, "endMinute": 0}]
+    assert post.json[6]["phases"] == []
+
+
+async def test_set_schedule_not_modified(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "400_4100")
+    serve_detail(env.state, "1_100")
+    env.state.add("POST", TIME_WINDOWS, Reply(status=304))
+    await env.client().set_schedule(FACILITY, "buffer1", {Weekday.MONDAY: [Phase(0, 1440)]})
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({Weekday.MONDAY: [Phase(i * 60, i * 60 + 30) for i in range(5)]}, "at most 4"),
+        ({Weekday.MONDAY: [Phase(0, 120), Phase(60, 180)]}, "overlap"),
+    ],
+)
+async def test_set_schedule_is_validated_first(
+    env: Env, changes: dict[Weekday, list[Phase]], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        await env.client().set_schedule(FACILITY, "hc1", changes)
+    assert env.state.requests == []
+
+
+async def test_set_schedule_requires_remote_control_and_schedule(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    serve_detail(env.state, "1_100", boiler_with_remote("0"))
+    client = env.client()
+    with pytest.raises(RemoteControlDisabledError):
+        await client.set_schedule(FACILITY, "hc1", {Weekday.MONDAY: []})
+    serve_detail(env.state, "1_906")
+    with pytest.raises(CloudParameterNotFoundError, match="schedule"):
+        await client.set_schedule(FACILITY, "feed", {Weekday.MONDAY: []})
+    assert env.state.received("POST", TIME_WINDOWS) == []

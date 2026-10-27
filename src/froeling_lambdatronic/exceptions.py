@@ -59,3 +59,12 @@ class RemoteControlDisabledError(FroelingError):
 
 class CloudParameterNotFoundError(FroelingError):
     """The expected parameter was not found in the Fröling Connect response."""
+
+
+class RateLimitedError(FroelingError):
+    """Fröling Connect answered HTTP 429 (too many requests)."""
+
+    def __init__(self, retry_after: float | None) -> None:
+        self.retry_after = retry_after
+        hint = "" if retry_after is None else f", retry after {retry_after:g} s"
+        super().__init__(f"Fröling Connect rate limit reached{hint}")

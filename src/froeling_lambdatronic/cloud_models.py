@@ -94,7 +94,12 @@ class CloudComponent:
         """Key prefix of the value keys: 'boiler', 'hc1', 'dhw1', 'buffer1', 'feed' or 'circulation'."""
         if self.type is None:
             return None
-        return _COMPONENT_KEYS[self.type].format(n=self.number)
+        return component_key(self.type, self.number)
+
+
+def component_key(component_type: ComponentType, number: int) -> str:
+    """Key of a component, e.g. (CIRCUIT, 2) -> 'hc2'; boiler, feed and circulation carry no number."""
+    return _COMPONENT_KEYS[component_type].format(n=number)
 
 
 @dataclass(frozen=True, slots=True)
