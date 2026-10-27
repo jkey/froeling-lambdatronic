@@ -147,11 +147,20 @@ class FroelingConnectClient:
 
     async def get_component_detail(self, facility_id: int, component_id: str) -> CloudComponentDetail:
         """Read all parameters and the schedule of one component."""
-        detail = parse_component_detail(
-            await self._request("GET", _FCS + "/component/" + component_id, facility_id=facility_id)
-        )
+        try:
+            data = await self._request("GET", _FCS + "/component/" + component_id, facility_id=facility_id)
+        except _NotFoundError:
+            # The component id is stale: the next call reloads the component list.
+            self._forget(facility_id, component_id)
+            raise
+        detail = parse_component_detail(data)
         self._details[(facility_id, component_id)] = detail
         return detail
+
+    def _forget(self, facility_id: int, component_id: str) -> None:
+        """Drop the cached component list of the facility and the cached detail of the component."""
+        self._components.pop(facility_id, None)
+        self._details.pop((facility_id, component_id), None)
 
     async def get_overview(self, facility_id: int) -> CloudOverview:
         """Read the overview: all components with their main values in one request."""
@@ -212,10 +221,15 @@ class FroelingConnectClient:
         try:
             await self._put_parameter(facility_id, parameter.id, raw)
         except _NotFoundError:
-            # The parameter id changed (e.g. after a facility structure update): reload once.
+            # The parameter id changed (e.g. after a facility structure update): reload once. A 404 is
+            # never applied by the cloud, so the second PUT does not write the value twice.
             detail = await self.get_component_detail(facility_id, component.component_id)
             parameter = _parameter(detail, ref.name, key)
-            await self._put_parameter(facility_id, parameter.id, _encode(key, ref, parameter, value))
+            try:
+                await self._put_parameter(facility_id, parameter.id, _encode(key, ref, parameter, value))
+            except _NotFoundError:
+                self._forget(facility_id, component.component_id)
+                raise
 
     async def get_schedule(self, facility_id: int, component_key: str) -> Mapping[Weekday, tuple[Phase, ...]]:
         """Read the weekly schedule of a component ('hc1', 'dhw1', 'buffer1', 'circulation')."""
@@ -393,9 +407,9 @@ class _NotFoundError(ConnectionFailedError):
 
 
 def _rate_limited(response: aiohttp.ClientResponse) -> RateLimitedError:
-    header = response.headers.get("Retry-After", "")
+    header = response.headers.get("Retry-After", "").strip()
     # Retry-After may also be an HTTP date; only the seconds form is used.
-    return RateLimitedError(float(header) if header.isdigit() else None)
+    return RateLimitedError(float(header) if header.isascii() and header.isdigit() else None)
 
 
 def _parameter(detail: CloudComponentDetail, name: str, key: str) -> CloudParameter:
@@ -416,6 +430,8 @@ def _encode(key: str, ref: CloudRef, parameter: CloudParameter, value: float | t
     if ref.kind == "time":
         if not isinstance(value, time):
             raise TypeError(f"{key} expects a datetime.time")
+        if value.second or value.microsecond:
+            raise ValueError(f"{key} accepts whole minutes only, got {value.isoformat()}")
         return f"{value.hour:02d}:{value.minute:02d}"
     if ref.kind == "bool":
         if not isinstance(value, bool):

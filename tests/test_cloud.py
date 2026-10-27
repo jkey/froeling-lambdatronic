@@ -10,7 +10,8 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, time
 from pathlib import Path
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 
 import aiohttp
 import pytest
@@ -493,6 +494,33 @@ async def test_rate_limited(env: Env, headers: dict[str, str], retry_after: floa
     assert err.value.retry_after == retry_after
 
 
+@pytest.mark.parametrize(
+    ("header", "retry_after"), [(" 30 ", 30.0), ("30\t", 30.0), (" ", None), ("\u00b2", None)]
+)
+def test_rate_limited_strips_retry_after(header: str, retry_after: float | None) -> None:
+    response = cast(aiohttp.ClientResponse, SimpleNamespace(headers={"Retry-After": header}))
+    assert cloud._rate_limited(response).retry_after == retry_after
+
+
+async def test_rate_limited_on_write(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    serve_detail(env.state, "1_100")
+    env.state.add("PUT", parameter_path("7_88"), Reply(status=429, headers={"Retry-After": "60"}))
+    client = env.client()
+    with pytest.raises(RateLimitedError) as err:
+        await client.set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    assert err.value.retry_after == 60.0
+    assert len(env.state.received("PUT", parameter_path("7_88"))) == 1  # never sent twice
+    serve_detail(env.state, "300_3100")
+    env.state.add("POST", TIME_WINDOWS, Reply(status=429, headers={"Retry-After": "120"}))
+    with pytest.raises(RateLimitedError) as err:
+        await client.set_schedule(FACILITY, "hc1", {Weekday.MONDAY: []})
+    assert err.value.retry_after == 120.0
+    assert len(env.state.received("POST", TIME_WINDOWS)) == 1
+
+
 async def test_rate_limited_login(env: Env) -> None:
     env.state.add("POST", LOGIN, Reply(status=429, headers={"Retry-After": "5"}))
     with pytest.raises(RateLimitedError) as err:
@@ -652,6 +680,16 @@ async def test_set_value_type_checks_on_feed(env: Env, key: str, value: float) -
         await env.client().set_value(FACILITY, key, value)
 
 
+@pytest.mark.parametrize("value", [time(21, 30, 15), time(21, 30, 0, 1)])
+async def test_set_value_time_with_seconds_is_rejected(env: Env, value: time) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "1_906")
+    with pytest.raises(ValueError, match="whole minutes"):
+        await env.client().set_value(FACILITY, "pellet_filling_start_2", value)
+    assert [r for r in env.state.requests if r.method == "PUT"] == []
+
+
 async def test_set_value_out_of_range_reports_library_units(env: Env) -> None:
     login_ok(env.state)
     serve_list(env.state)
@@ -745,8 +783,32 @@ async def test_set_value_refreshes_stale_parameter_id(env: Env) -> None:
     env.state.add("PUT", parameter_path("7_88"), Reply(status=404))
     serve_detail(env.state, "300_3100")
     env.state.add("PUT", parameter_path("7_88"), Reply(status=404))
+    client = env.client()
     with pytest.raises(ConnectionFailedError):
-        await env.client().set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+        await client.set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    # The caches are dropped: the next call reloads the component list and the detail.
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    env.state.add("PUT", parameter_path("7_88"), Reply(payload={}))
+    await client.set_value(FACILITY, "hc1_curve_flow_plus10", 47)
+    assert len(env.state.received("GET", COMPONENTS)) == 3
+    assert len(env.state.received("GET", detail_path("300_3100"))) == 5
+
+
+async def test_stale_component_id_drops_the_cached_list(env: Env) -> None:
+    login_ok(env.state)
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    client = env.client()
+    await client.get_components(FACILITY)
+    await client.get_component_detail(FACILITY, "300_3100")
+    env.state.add("GET", detail_path("300_3100"), Reply(status=404))
+    with pytest.raises(ConnectionFailedError):
+        await client.get_schedule(FACILITY, "hc1")
+    serve_list(env.state)
+    serve_detail(env.state, "300_3100")
+    await client.get_schedule(FACILITY, "hc1")
+    assert len(env.state.received("GET", COMPONENTS)) == 2
 
 
 async def test_get_schedule(env: Env) -> None:
