@@ -613,13 +613,19 @@ async def test_read_snapshot_aborts_on_transport_errors(
     assert env.state.received("GET", detail_path("300_3100")) == []
 
 
-async def test_read_snapshot_propagates_failed_token_renewal(env: Env) -> None:
+@pytest.mark.parametrize(
+    ("headers", "message"),
+    [({}, "no token"), ({"Authorization": "garbage"}, "token format")],
+)
+async def test_read_snapshot_propagates_failed_token_renewal(
+    env: Env, headers: dict[str, str], message: str
+) -> None:
     login_ok(env.state)
     env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
     serve_list(env.state)
     env.state.add("GET", detail_path("1_100"), Reply(status=401))
-    env.state.add("POST", LOGIN, Reply(payload={"userData": {}}))  # answer without token
-    with pytest.raises(CommunicationError, match="no token"):
+    env.state.add("POST", LOGIN, Reply(payload={"userData": {}}, headers=headers))
+    with pytest.raises(CommunicationError, match=message):
         await env.client().read_snapshot(FACILITY, details=True)
     assert len(env.state.received("POST", LOGIN)) == 2
     assert env.state.received("GET", detail_path("300_3100")) == []

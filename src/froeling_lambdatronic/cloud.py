@@ -126,7 +126,7 @@ class FroelingConnectClient:
         except (aiohttp.ClientError, TimeoutError) as err:
             raise ConnectionFailedError(f"Fröling Connect not reachable: {err}") from err
         if not token:
-            raise _MissingTokenError("login response carries no token")
+            raise _LoginError("login response carries no token")
         self._user_id = _user_id_from_token(token)
         self._token = token
 
@@ -185,7 +185,7 @@ class FroelingConnectClient:
 
         Components of an unknown type are not read in detail. A component whose detail cannot be parsed
         or is not found (HTTP 404) is skipped and logged; the snapshot then lacks its detail values.
-        Connection, timeout, rate limiting and authentication errors abort the snapshot.
+        Connection, timeout, rate limiting, authentication and login errors abort the snapshot.
         """
         overview = await self.get_overview(facility_id)
         if not details:
@@ -196,8 +196,8 @@ class FroelingConnectClient:
                 continue
             try:
                 loaded.append(await self.get_component_detail(facility_id, component.component_id))
-            except _MissingTokenError:
-                raise  # a failed token renewal is no unreadable detail
+            except _LoginError:
+                raise  # a failed login or token renewal is no unreadable detail
             except (CommunicationError, _NotFoundError) as err:
                 # Only the component id is logged: the error text carries the URL with user and facility id.
                 _LOGGER.warning(
@@ -404,8 +404,8 @@ class FroelingConnectClient:
         return await response.json(content_type=None)
 
 
-class _MissingTokenError(CommunicationError):
-    """The login answer carries no token; read_snapshot must not mistake it for an unreadable detail."""
+class _LoginError(CommunicationError):
+    """The login answer carries no usable token; read_snapshot must not skip it as unreadable detail."""
 
 
 class _NotFoundError(ConnectionFailedError):
@@ -514,4 +514,4 @@ def _user_id_from_token(token: str) -> int:
         data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
         return int(data["userId"])
     except (IndexError, KeyError, ValueError, binascii.Error, TypeError) as err:
-        raise CommunicationError("unexpected token format") from err
+        raise _LoginError("unexpected token format") from err
