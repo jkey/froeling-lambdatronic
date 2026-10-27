@@ -533,7 +533,7 @@ async def test_read_snapshot_overview_only(env: Env) -> None:
     env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
     snapshot = await env.client().read_snapshot(FACILITY, details=False)
     assert not snapshot.details_loaded
-    assert snapshot.value("pellet_counter") == 1142.0
+    assert snapshot.value("pellet_counter") == 2600.0
     assert env.state.received("GET", COMPONENTS) == []
 
 

@@ -16,7 +16,7 @@
     "name": "pelletsUsageCounter",
     "parameterType": "NumValueObject",
     "unit": "t",
-    "value": "1.13"
+    "value": "2.5"
    },
    "pelletsFillLevel": {
     "displayName": "Füllstand im Pelletsbehälter",
@@ -62,7 +62,7 @@
     "name": "totalPelletConsumption",
     "parameterType": "NumValueObject",
     "unit": "t",
-    "value": "42.9"
+    "value": "60.5"
    },
    "startFirstFilling": {
     "displayName": "Start der 1. Pelletsbefüllung",
@@ -138,7 +138,7 @@
    "name": "tonsCounter",
    "parameterType": "NumValueObject",
    "unit": "t",
-   "value": "1"
+   "value": "2"
   },
   {
    "displayName": "Resetierbarer kg-Zähler:",
@@ -149,7 +149,7 @@
    "name": "kgCounter",
    "parameterType": "NumValueObject",
    "unit": "kg",
-   "value": "130"
+   "value": "500"
   },
   {
    "displayName": "Zähler RESET",
@@ -197,7 +197,7 @@
    "name": "totalPelletConsumption",
    "parameterType": "NumValueObject",
    "unit": "t",
-   "value": "42.9"
+   "value": "60.5"
   },
   {
    "displayName": "Pelletverbrauch-Zähler",
@@ -208,7 +208,7 @@
    "name": "pelletsUsageCounter",
    "parameterType": "NumValueObject",
    "unit": "t",
-   "value": "1.13"
+   "value": "2.5"
   }
  ],
  "setupView": [

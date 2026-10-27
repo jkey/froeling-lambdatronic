@@ -48,7 +48,7 @@
    "componentId": "300_3100",
    "componentNumber": 1,
    "displayCategory": "Heizkreis 01",
-   "displayName": "Heizkreis 02",
+   "displayName": "Heizkreis 01",
    "subType": "OUT_TEMP_CRTL",
    "type": "CIRCUIT",
    "heatingPhase": [
@@ -156,7 +156,7 @@
    "componentId": "300_3110",
    "componentNumber": 2,
    "displayCategory": "Heizkreis 02",
-   "displayName": "Heizkreis 01",
+   "displayName": "Heizkreis 02",
    "subType": "OUT_TEMP_CRTL",
    "type": "CIRCUIT",
    "heatingPhase": [
@@ -493,12 +493,12 @@
    "totalPelletConsumption": {
     "displayName": "Pelletverbrauch Gesamt",
     "unit": "t",
-    "value": "42.9"
+    "value": "60.5"
    },
    "pelletsUsageCounter": {
     "displayName": "Pelletverbrauch-Zähler",
     "unit": "t",
-    "value": "1.142"
+    "value": "2.6"
    }
   },
   {

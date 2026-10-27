@@ -61,7 +61,7 @@
     "name": "hoursTillAshboxWarn",
     "parameterType": "NumValueObject",
     "unit": "h",
-    "value": "221"
+    "value": "200"
    },
    "pelletsFillLevel": {
     "displayName": "Füllstand im Pelletsbehälter",
@@ -406,7 +406,7 @@
    "name": "hoursTillAshboxWarn",
    "parameterType": "NumValueObject",
    "unit": "h",
-   "value": "221"
+   "value": "200"
   },
   {
    "displayName": "Saugzug - Ansteuerung",

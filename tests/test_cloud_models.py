@@ -86,7 +86,7 @@ def test_parse_component_list() -> None:
         raw_type="CIRCUIT",
         number=2,
         standard_name="Heizkreis 02",
-        display_name="Heizkreis 01",
+        display_name="Heizkreis 02",
     )
 
 
@@ -310,7 +310,7 @@ def test_parse_overview() -> None:
     assert hc1.component.standard_name == "Heizkreis 01"
     assert hc1.values["circuitPumpControl"] == "1"
     assert hc1.schedule[Weekday.MONDAY] == (Phase(270, 1320),)
-    assert overview.components[5].values["pelletsUsageCounter"] == "1.142"
+    assert overview.components[5].values["pelletsUsageCounter"] == "2.6"
     assert overview.components[5].schedule == {}
 
 

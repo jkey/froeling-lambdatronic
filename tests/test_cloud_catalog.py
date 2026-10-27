@@ -149,7 +149,7 @@ def test_cloud_ref_unknown(key: str) -> None:
     ("ref", "raw", "expected"),
     [
         (CloudRef(ComponentType.BOILER, "boilerTemp", "number"), "61", 61.0),
-        (CloudRef(ComponentType.FEED_SYSTEM, "pelletsUsageCounter", "number", 1000), "1.142", 1142.0),
+        (CloudRef(ComponentType.FEED_SYSTEM, "pelletsUsageCounter", "number", 1000), "2.6", 2600.0),
         (CloudRef(ComponentType.BOILER, "state", "choice"), "19", 19),
         (CloudRef(ComponentType.BOILER, "state", "choice"), "3.0", 3),
         (CloudRef(ComponentType.BOILER, "boilerOn", "bool", invert=True), "0", True),
@@ -205,8 +205,8 @@ def test_snapshot_from_overview() -> None:
         "buffer1_charge": 66.0,
         "buffer1_pump": 59.0,
         "pellet_stock": 4.5,
-        "pellet_consumption_total": 42.9,
-        "pellet_counter": 1142.0,
+        "pellet_consumption_total": 60.5,
+        "pellet_counter": 2600.0,
         "circulation_return_temperature": 0.0,
         "circulation_pump": 100.0,
     }
@@ -235,7 +235,7 @@ def test_snapshot_with_details() -> None:
     assert snapshot.details_loaded
     # The details (older probe) win over the overview.
     assert snapshot.value("boiler_temperature") == 61.0
-    assert snapshot.value("pellet_counter") == 1130.0
+    assert snapshot.value("pellet_counter") == 2500.0
     assert snapshot.value("outside_temperature") == 9.0
     assert snapshot.value("pellet_filling_start_1") == time(10, 0)
     assert snapshot.value("pellet_filling_start_2") == time(22, 0)
