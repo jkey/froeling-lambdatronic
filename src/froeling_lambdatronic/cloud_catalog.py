@@ -14,6 +14,7 @@ from .cloud_models import (
     ComponentType,
     Phase,
     Weekday,
+    component_key,
 )
 from .models import Equipment, FlatValue
 
@@ -138,12 +139,18 @@ _PATTERNS = tuple(
 def cloud_ref(key: str) -> tuple[CloudRef, int] | None:
     """Resolve a full key such as 'hc2_flow_temperature' to its reference and component number.
 
-    Keys without a number (e.g. 'boiler_temperature') refer to component number 1.
+    Keys without a number (e.g. 'boiler_temperature') refer to component number 1. A numbered key on a
+    component without a number (boiler, feed, circulation) exists only for number 1: the boiler reports
+    the start difference of buffer 1 only, so 'buffer2_ignition_below_buffer_temperature' is unknown.
     """
     for pattern, template in _PATTERNS:
         match = pattern.fullmatch(key)
         if match:
-            return CLOUD_REFS[template], int(match.group(1)) if match.groups() else 1
+            ref = CLOUD_REFS[template]
+            number = int(match.group(1)) if match.groups() else 1
+            if number != 1 and component_key(ref.component, number) == component_key(ref.component, 1):
+                return None
+            return ref, number
     return None
 
 

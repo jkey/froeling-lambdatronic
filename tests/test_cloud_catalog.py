@@ -117,6 +117,11 @@ def test_catalogue_entries() -> None:
         ("circulation_pump", "circulation_pump", 1),
         ("hc1_pump", "hc{n}_pump", 1),
         ("pellet_counter", "pellet_counter", 1),
+        (
+            "buffer1_ignition_below_buffer_temperature",
+            "buffer{n}_ignition_below_buffer_temperature",
+            1,
+        ),
     ],
 )
 def test_cloud_ref(key: str, template: str, number: int) -> None:
@@ -124,7 +129,17 @@ def test_cloud_ref(key: str, template: str, number: int) -> None:
 
 
 @pytest.mark.parametrize(
-    "key", ["hc0_flow_temperature", "hc_flow_temperature", "hcx_flow_temperature", "hc1_desired", "x", ""]
+    "key",
+    [
+        "hc0_flow_temperature",
+        "hc_flow_temperature",
+        "hcx_flow_temperature",
+        "hc1_desired",
+        "x",
+        "",
+        # The boiler reports only the start difference of buffer 1; buffer 2 must not map onto it.
+        "buffer2_ignition_below_buffer_temperature",
+    ],
 )
 def test_cloud_ref_unknown(key: str) -> None:
     assert cloud_ref(key) is None

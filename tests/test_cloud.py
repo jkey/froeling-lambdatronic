@@ -630,6 +630,12 @@ async def test_set_value_unknown_key(env: Env) -> None:
     assert env.state.requests == []
 
 
+async def test_set_value_buffer2_ignition_is_unknown(env: Env) -> None:
+    with pytest.raises(ValueError, match="no Fröling Connect parameter"):
+        await env.client().set_value(FACILITY, "buffer2_ignition_below_buffer_temperature", 10)
+    assert env.state.requests == []
+
+
 async def test_set_value_missing_component_and_parameter(env: Env) -> None:
     login_ok(env.state)
     serve_list(env.state)
