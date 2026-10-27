@@ -126,7 +126,7 @@ class FroelingConnectClient:
         except (aiohttp.ClientError, TimeoutError) as err:
             raise ConnectionFailedError(f"Fröling Connect not reachable: {err}") from err
         if not token:
-            raise CommunicationError("login response carries no token")
+            raise _MissingTokenError("login response carries no token")
         self._user_id = _user_id_from_token(token)
         self._token = token
 
@@ -196,6 +196,8 @@ class FroelingConnectClient:
                 continue
             try:
                 loaded.append(await self.get_component_detail(facility_id, component.component_id))
+            except _MissingTokenError:
+                raise  # a failed token renewal is no unreadable detail
             except (CommunicationError, _NotFoundError) as err:
                 # Only the component id is logged: the error text carries the URL with user and facility id.
                 _LOGGER.warning(
@@ -400,6 +402,10 @@ class FroelingConnectClient:
         if not HTTPStatus.OK <= response.status < HTTPStatus.MULTIPLE_CHOICES:
             raise ConnectionFailedError(f"{method} {url} failed with HTTP {response.status}")
         return await response.json(content_type=None)
+
+
+class _MissingTokenError(CommunicationError):
+    """The login answer carries no token; read_snapshot must not mistake it for an unreadable detail."""
 
 
 class _NotFoundError(ConnectionFailedError):

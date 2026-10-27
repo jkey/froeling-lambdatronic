@@ -613,6 +613,18 @@ async def test_read_snapshot_aborts_on_transport_errors(
     assert env.state.received("GET", detail_path("300_3100")) == []
 
 
+async def test_read_snapshot_propagates_failed_token_renewal(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    serve_list(env.state)
+    env.state.add("GET", detail_path("1_100"), Reply(status=401))
+    env.state.add("POST", LOGIN, Reply(payload={"userData": {}}))  # answer without token
+    with pytest.raises(CommunicationError, match="no token"):
+        await env.client().read_snapshot(FACILITY, details=True)
+    assert len(env.state.received("POST", LOGIN)) == 2
+    assert env.state.received("GET", detail_path("300_3100")) == []
+
+
 async def test_read_snapshot_aborts_on_timeout(env: Env, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cloud, "_TIMEOUT", aiohttp.ClientTimeout(total=0.05))
     login_ok(env.state)
