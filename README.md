@@ -29,7 +29,7 @@ from froeling_lambdatronic import LambdatronicClient, heating_circuit
 
 
 async def main() -> None:
-    async with LambdatronicClient("192.168.70.18", slave=2) as boiler:
+    async with LambdatronicClient("192.168.1.50", slave=2) as boiler:
         equipment = await boiler.detect_equipment()
         values = await boiler.read_values(equipment)
         print(values.boiler_temperature, values.system_state)
@@ -119,9 +119,13 @@ header = await cloud.get_header(facility)  # header.online, header.last_signal
 errors = await cloud.get_errors(facility)  # error history with timestamp and severity
 ```
 
-`read_snapshot(facility, details=False)` needs a single request; `details=True` adds the component
-list and one request per component (`skip={"hc2"}` leaves components out). Schedules are written for all
-seven days at once; a day has at most four phases in minutes after midnight (end 1440 = 24:00).
+`details` is a required keyword argument of `read_snapshot()`: `details=False` needs a single request;
+`details=True` adds the component list and one request per component (`skip={"hc2"}` leaves
+components out). A component detail that cannot be read is skipped and logged. `set_schedule()`
+replaces only the given days; the request still carries all seven days, the other days keep their
+current phases. A day has at most four phases in minutes after midnight (end 1440 = 24:00). If a
+day that is not replaced contains a phase the library cannot read, nothing is written
+(`CommunicationError`) so that phase is not lost.
 `CLOUD_REFS` documents which key maps to which Fröling Connect parameter; `merge_equipment()`
 compares the equipment detected via Modbus with the cloud components. System information never
 contains the address, contacts or pairing code of the facility.
@@ -148,6 +152,10 @@ Breaking changes:
 - Heating limits (`hcN_heating_limit`, `hcN_heating_limit_setback`) accept −20…50 °C (was 0…50).
 - `HeatingCircuitParameters`, `LambdatronicValues` and `LambdatronicParameters` have new required
   fields; `BufferRegisters.all()` also contains the buffer settings.
+- The constructors of `HeatingCircuitRegisters` (`room_setpoint_heating`, `frost_protection`,
+  `pump_off_below_flow_setpoint`, `room_setpoint_setback`, `buffer_overheat_protection`) and
+  `BufferRegisters` (`circuit_release`, `ignition_difference`) have new required fields; use
+  `heating_circuit(n)` and `buffer(n)` to build them.
 
 New: the Modbus registers listed above, `flat()`, `register_for_key()`, `minutes_to_time()` /
 `time_to_minutes()`, and the Fröling Connect snapshot, writing, schedules, system information,
