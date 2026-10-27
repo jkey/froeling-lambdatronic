@@ -183,9 +183,9 @@ class FroelingConnectClient:
     ) -> CloudSnapshot:
         """Read the overview and, with `details`, every component detail except the keys in `skip`.
 
-        Components of an unknown type are not read in detail. A component whose detail cannot be read or
-        parsed is skipped and logged; the snapshot then lacks its detail values. Rate limiting and
-        authentication errors are raised.
+        Components of an unknown type are not read in detail. A component whose detail cannot be parsed
+        or is not found (HTTP 404) is skipped and logged; the snapshot then lacks its detail values.
+        Connection, timeout, rate limiting and authentication errors abort the snapshot.
         """
         overview = await self.get_overview(facility_id)
         if not details:
@@ -196,7 +196,7 @@ class FroelingConnectClient:
                 continue
             try:
                 loaded.append(await self.get_component_detail(facility_id, component.component_id))
-            except (CommunicationError, ConnectionFailedError) as err:
+            except (CommunicationError, _NotFoundError) as err:
                 # Only the component id is logged: the error text carries the URL with user and facility id.
                 _LOGGER.warning(
                     "Skipping the detail of component %s: %s", component.component_id, type(err).__name__

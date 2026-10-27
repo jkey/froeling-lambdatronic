@@ -572,7 +572,7 @@ async def test_read_snapshot_skips_broken_details(env: Env, caplog: pytest.LogCa
         if component_id == "300_3110":
             serve_detail(env.state, component_id, ["not", "an", "object"])
         elif component_id == "200_2100":
-            env.state.add("GET", detail_path(component_id), Reply(status=500))
+            env.state.add("GET", detail_path(component_id), Reply(status=404))
         else:
             serve_detail(env.state, component_id)
     with caplog.at_level(logging.WARNING, logger="froeling_lambdatronic.cloud"):
@@ -590,13 +590,38 @@ async def test_read_snapshot_skips_broken_details(env: Env, caplog: pytest.LogCa
     assert all(str(USER) not in m and str(FACILITY) not in m for m in messages)
 
 
-async def test_read_snapshot_does_not_skip_rate_limit(env: Env) -> None:
+@pytest.mark.parametrize(
+    ("reply", "error"),
+    [
+        (Reply(status=429), RateLimitedError),
+        (Reply(status=500), ConnectionFailedError),
+        (Reply(status=401), AuthenticationError),
+    ],
+)
+async def test_read_snapshot_aborts_on_transport_errors(
+    env: Env, reply: Reply, error: type[Exception]
+) -> None:
     login_ok(env.state)
     env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
     serve_list(env.state)
-    env.state.add("GET", detail_path("1_100"), Reply(status=429))
-    with pytest.raises(RateLimitedError):
+    env.state.add("GET", detail_path("1_100"), reply)
+    if reply.status == 401:
+        login_ok(env.state)
+        env.state.add("GET", detail_path("1_100"), reply)
+    with pytest.raises(error):
         await env.client().read_snapshot(FACILITY, details=True)
+    assert env.state.received("GET", detail_path("300_3100")) == []
+
+
+async def test_read_snapshot_aborts_on_timeout(env: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cloud, "_TIMEOUT", aiohttp.ClientTimeout(total=0.05))
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(payload=fixture("overview.json")))
+    serve_list(env.state)
+    env.state.add("GET", detail_path("1_100"), Reply(payload={}, delay=0.5))
+    with pytest.raises(ConnectionFailedError):
+        await env.client().read_snapshot(FACILITY, details=True)
+    assert env.state.received("GET", detail_path("300_3100")) == []
 
 
 @pytest.mark.parametrize(

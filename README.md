@@ -121,7 +121,8 @@ errors = await cloud.get_errors(facility)  # error history with timestamp and se
 
 `details` is a required keyword argument of `read_snapshot()`: `details=False` needs a single request;
 `details=True` adds the component list and one request per component (`skip={"hc2"}` leaves
-components out). A component detail that cannot be read is skipped and logged. `set_schedule()`
+components out). A component detail that cannot be parsed or is not found (HTTP 404) is skipped and
+logged; connection, timeout, rate limiting and authentication errors abort the snapshot. `set_schedule()`
 replaces only the given days; the request still carries all seven days, the other days keep their
 current phases. A day has at most four phases in minutes after midnight (end 1440 = 24:00). If a
 day that is not replaced contains a phase the library cannot read, nothing is written
