@@ -1,6 +1,7 @@
 """High-level client for a Lambdatronic 3200 boiler."""
 
 from collections.abc import Iterable
+from datetime import time
 from types import TracebackType
 from typing import Self
 
@@ -21,7 +22,10 @@ from .modbus.exceptions import (
     ModbusTimeoutError,
 )
 from .models import (
+    MINUTES_PER_DAY,
+    BufferParameters,
     BufferValues,
+    CirculationValues,
     Equipment,
     HeatingCircuitParameters,
     HeatingCircuitValues,
@@ -29,13 +33,16 @@ from .models import (
     HotWaterValues,
     LambdatronicParameters,
     LambdatronicValues,
+    minutes_to_time,
 )
 from .registers import (
     BOILER,
+    CIRCULATION,
     ERROR_SLOTS,
     MAX_BUFFERS,
     MAX_HEATING_CIRCUITS,
     MAX_HOT_WATER,
+    BufferRegisters,
     ReadBlock,
     RegisterDef,
     Space,
@@ -119,6 +126,7 @@ class LambdatronicClient:
         definitions += [t.temperature for t in tanks]
         for b in buffers:
             definitions += [b.top, b.bottom]
+        definitions.append(CIRCULATION.pump_off_above)
         raw = await self._read_raw(definitions, max_gap=2)
 
         def present(*defs: RegisterDef) -> bool:
@@ -130,6 +138,8 @@ class LambdatronicClient:
             ),
             hot_water=tuple(t.number for t in tanks if present(t.temperature)),
             buffers=tuple(b.number for b in buffers if present(b.top, b.bottom)),
+            # An undocumented register answers 0xFFFF; 40601 exists only with a circulation pump.
+            circulation_pump=raw[CIRCULATION.pump_off_above.number] != 0xFFFF,
         )
 
     async def read_values(self, equipment: Equipment) -> LambdatronicValues:
@@ -144,6 +154,8 @@ class LambdatronicClient:
             definitions += [t.temperature, t.pump]
         for b in buffers.values():
             definitions += [b.top, b.middle, b.bottom, b.pump]
+        if equipment.circulation_pump:
+            definitions += CIRCULATION.all()
         raw = await self._read_raw(definitions)
 
         def value(definition: RegisterDef) -> float | None:
@@ -154,20 +166,23 @@ class LambdatronicClient:
             return None if decoded is None else int(decoded)
 
         demand = code(BOILER.boiler_demand)
+        tonnes = value(BOILER.pellet_counter_t)
+        kilograms = value(BOILER.pellet_counter_kg)
         return LambdatronicValues(
             boiler_temperature=value(BOILER.boiler_temperature),
             flue_gas_temperature=value(BOILER.flue_gas_temperature),
             residual_oxygen=value(BOILER.residual_oxygen),
             induced_draft_speed=value(BOILER.induced_draft_speed),
             return_temperature=value(BOILER.return_temperature),
-            boiler_output=value(BOILER.boiler_control_output),
+            boiler_control_output=value(BOILER.boiler_control_output),
             operating_hours=value(BOILER.operating_hours),
+            hours_since_maintenance=value(BOILER.hours_since_maintenance),
             pellet_hopper_level=value(BOILER.pellet_hopper_level),
             burner_starts=value(BOILER.burner_starts),
             feed_rate=value(BOILER.feed_rate),
             boiler_setpoint_calculated=value(BOILER.boiler_setpoint_calculated),
             heating_hours=value(BOILER.heating_hours),
-            pellet_counter_kg=value(BOILER.pellet_counter_kg),
+            pellet_counter=None if tonnes is None or kilograms is None else 1000 * tonnes + kilograms,
             pellet_consumption_total=value(BOILER.pellet_consumption_total),
             hours_until_ash_emptying=value(BOILER.hours_until_ash_emptying),
             outside_temperature=value(BOILER.outside_temperature),
@@ -186,13 +201,29 @@ class LambdatronicClient:
                 n: BufferValues(value(b.top), value(b.middle), value(b.bottom), value(b.pump))
                 for n, b in buffers.items()
             },
+            circulation=self._circulation(raw) if equipment.circulation_pump else None,
             raw=raw,
+        )
+
+    @staticmethod
+    def _circulation(raw: dict[int, int]) -> CirculationValues:
+        flow_switch = CIRCULATION.flow_switch.decode(raw[CIRCULATION.flow_switch.number])
+        sensor = raw[CIRCULATION.return_sensor_present.number]
+        return CirculationValues(
+            flow_switch=None if flow_switch is None else flow_switch != 0,
+            pump=CIRCULATION.pump.decode(raw[CIRCULATION.pump.number]),
+            return_temperature=(
+                CIRCULATION.return_temperature.decode(raw[CIRCULATION.return_temperature.number])
+                if sensor == 1
+                else None
+            ),
         )
 
     async def read_parameters(self, equipment: Equipment) -> LambdatronicParameters:
         """Read all writable settings for the given equipment."""
         circuits = {n: heating_circuit(n) for n in equipment.heating_circuits}
         tanks = {n: hot_water(n) for n in equipment.hot_water}
+        buffers = {n: buffer(n) for n in equipment.buffers}
         definitions = list(_PARAMETER_DEFS)
         for hc in circuits.values():
             definitions += [
@@ -203,18 +234,45 @@ class LambdatronicClient:
                 hc.heating_limit,
                 hc.heating_limit_setback,
                 hc.operating_mode,
+                hc.room_setpoint_heating,
+                hc.room_setpoint_setback,
+                hc.frost_protection,
+                hc.pump_off_below_flow_setpoint,
+                hc.buffer_overheat_protection,
             ]
         for t in tanks.values():
             definitions += [t.setpoint, t.recharge_below]
+        for b in buffers.values():
+            definitions += [b.circuit_release, b.ignition_difference]
+        if equipment.circulation_pump:
+            definitions.append(CIRCULATION.pump_off_above)
         raw = await self._read_raw(definitions)
 
         def value(definition: RegisterDef) -> float | None:
             return definition.decode(raw[definition.number])
 
+        def time_of_day(definition: RegisterDef) -> time | None:
+            minutes = value(definition)
+            if minutes is None or not 0 <= minutes < MINUTES_PER_DAY:
+                return None
+            return minutes_to_time(int(minutes))
+
+        def ignition_below(b: BufferRegisters) -> float | None:
+            setpoint = value(BOILER.boiler_setpoint)
+            difference = value(b.ignition_difference)
+            return None if setpoint is None or difference is None else setpoint - difference
+
+        feeder_off = value(BOILER.auto_feeder_off)
         return LambdatronicParameters(
             boiler_setpoint=value(BOILER.boiler_setpoint),
             pellet_stock=value(BOILER.pellet_stock),
             pellet_stock_minimum=value(BOILER.pellet_stock_minimum),
+            pellet_filling_start_1=time_of_day(BOILER.pellet_filling_start_1),
+            pellet_filling_start_2=time_of_day(BOILER.pellet_filling_start_2),
+            auto_feeder_off=None if feeder_off is None else feeder_off != 0,
+            circulation_pump_off_above=(
+                value(CIRCULATION.pump_off_above) if equipment.circulation_pump else None
+            ),
             heating_circuits={
                 n: HeatingCircuitParameters(
                     curve_flow_plus10=value(hc.curve_flow_plus10),
@@ -224,11 +282,19 @@ class LambdatronicClient:
                     heating_limit=value(hc.heating_limit),
                     heating_limit_setback=value(hc.heating_limit_setback),
                     operating_mode=normalize_heating_circuit_mode(raw[hc.operating_mode.number]),
+                    room_setpoint_heating=value(hc.room_setpoint_heating),
+                    room_setpoint_setback=value(hc.room_setpoint_setback),
+                    frost_protection=value(hc.frost_protection),
+                    pump_off_below_flow_setpoint=value(hc.pump_off_below_flow_setpoint),
+                    buffer_overheat_protection=value(hc.buffer_overheat_protection),
                 )
                 for n, hc in circuits.items()
             },
             hot_water={
                 n: HotWaterParameters(value(t.setpoint), value(t.recharge_below)) for n, t in tanks.items()
+            },
+            buffers={
+                n: BufferParameters(value(b.circuit_release), ignition_below(b)) for n, b in buffers.items()
             },
             raw=raw,
         )

@@ -2,6 +2,7 @@
 
 import asyncio
 import socket
+from datetime import time
 
 import pytest
 
@@ -15,12 +16,19 @@ from froeling_lambdatronic.exceptions import (
     ValueOutOfRangeError,
     WriteRejectedError,
 )
-from froeling_lambdatronic.models import Equipment
-from froeling_lambdatronic.registers import BOILER, RegisterDef, heating_circuit, hot_water
+from froeling_lambdatronic.models import BufferParameters, CirculationValues, Equipment
+from froeling_lambdatronic.registers import (
+    BOILER,
+    CIRCULATION,
+    RegisterDef,
+    buffer,
+    heating_circuit,
+    hot_water,
+)
 from tests.conftest import load_snapshot
 from tests.fake_server import FakeLambdatronic, split_snapshot
 
-EQUIPMENT = Equipment(heating_circuits=(1, 2), hot_water=(1,), buffers=(1,))
+EQUIPMENT = Equipment(heating_circuits=(1, 2), hot_water=(1,), buffers=(1,), circulation_pump=True)
 
 
 def client_for(address: tuple[str, int], slave: int = 2) -> LambdatronicClient:
@@ -37,6 +45,20 @@ async def test_detect_equipment(fake_address: tuple[str, int]) -> None:
         assert await client.detect_equipment() == EQUIPMENT
 
 
+async def test_detect_equipment_without_circulation_pump(snapshot: dict[str, int]) -> None:
+    inputs, holdings = split_snapshot(snapshot)
+    holdings[CIRCULATION.pump_off_above.address] = 0xFFFF
+    server = FakeLambdatronic(inputs, holdings)
+    address = await server.start()
+    try:
+        async with client_for(address) as client:
+            equipment = await client.detect_equipment()
+        assert not equipment.circulation_pump
+        assert equipment.heating_circuits == (1, 2)
+    finally:
+        await server.stop()
+
+
 async def test_read_values(fake_address: tuple[str, int], snapshot: dict[str, int]) -> None:
     async with client_for(fake_address) as client:
         values = await client.read_values(EQUIPMENT)
@@ -51,6 +73,55 @@ async def test_read_values(fake_address: tuple[str, int], snapshot: dict[str, in
     assert values.hot_water[1].temperature == snapshot["31631"] / 2
     assert values.buffers[1].middle is None  # 254 = unplugged probe
     assert values.raw[30001] == snapshot["30001"]
+    assert values.boiler_control_output == snapshot["30015"]
+    assert values.hours_since_maintenance == 17702
+    assert values.pellet_counter == 1000 * snapshot["30083"] + snapshot["30082"] == 1094
+    # 40603 = 0: no return sensor at the circulation line.
+    assert values.circulation == CirculationValues(flow_switch=False, pump=0.0, return_temperature=None)
+    assert values.flat()["circulation_pump"] == 0.0
+
+
+async def test_read_values_reads_only_input_registers_of_buffers(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    async with client_for(fake_address) as client:
+        await client.read_values(Equipment((), (), (1,)))
+    holding_reads = [r for r in fake.requests if r[1] == 3]
+    assert not any(
+        address <= buffer(1).circuit_release.address < address + count
+        for _, _, address, count in holding_reads
+    )
+
+
+async def test_read_values_circulation_with_return_sensor(snapshot: dict[str, int]) -> None:
+    inputs, holdings = split_snapshot(snapshot)
+    holdings[CIRCULATION.return_sensor_present.address] = 1
+    inputs[CIRCULATION.flow_switch.address] = 2
+    inputs[CIRCULATION.pump.address] = 100
+    inputs[CIRCULATION.return_temperature.address] = 70
+    server = FakeLambdatronic(inputs, holdings)
+    address = await server.start()
+    try:
+        async with client_for(address) as client:
+            values = await client.read_values(EQUIPMENT)
+        assert values.circulation == CirculationValues(flow_switch=True, pump=100.0, return_temperature=35.0)
+    finally:
+        await server.stop()
+
+
+async def test_read_values_without_circulation_and_with_missing_counter(snapshot: dict[str, int]) -> None:
+    inputs, holdings = split_snapshot(snapshot)
+    inputs[BOILER.pellet_counter_t.address] = 0xFFFF
+    server = FakeLambdatronic(inputs, holdings)
+    address = await server.start()
+    try:
+        async with client_for(address) as client:
+            values = await client.read_values(Equipment((1,), (), ()))
+        assert values.circulation is None
+        assert values.pellet_counter is None
+        assert 30711 not in values.raw
+    finally:
+        await server.stop()
 
 
 async def test_read_values_with_active_errors(snapshot: dict[str, int]) -> None:
@@ -79,6 +150,47 @@ async def test_read_parameters(fake_address: tuple[str, int]) -> None:
     assert parameters.heating_circuits[2].curve_flow_plus10 == 29.0
     assert parameters.hot_water[1].setpoint == 55.0
     assert parameters.hot_water[1].recharge_below == 45.0
+    assert (hc1.room_setpoint_heating, hc1.room_setpoint_setback) == (20.0, 16.0)
+    assert (hc1.frost_protection, hc1.pump_off_below_flow_setpoint) == (10.0, 20.0)
+    assert hc1.buffer_overheat_protection == 120.0
+    assert parameters.heating_circuits[2].buffer_overheat_protection == 120.0
+    assert parameters.pellet_filling_start_1 == time(10, 0)
+    assert parameters.pellet_filling_start_2 == time(22, 0)
+    assert parameters.auto_feeder_off is False
+    assert parameters.circulation_pump_off_above == 35.0
+    # 42001 = 60 -> 30 °C; 40001 - 42005 = 70 - 15 = 55 °C.
+    assert parameters.buffers == {
+        1: BufferParameters(circuit_release=30.0, ignition_below_buffer_temperature=55.0)
+    }
+    assert parameters.flat()["buffer1_circuit_release"] == 30.0
+
+
+async def test_read_parameters_edge_cases(snapshot: dict[str, int]) -> None:
+    inputs, holdings = split_snapshot(snapshot)
+    holdings[BOILER.pellet_filling_start_1.address] = 2400  # documented maximum, not a time of day
+    holdings[BOILER.pellet_filling_start_2.address] = 0xFFFF
+    holdings[BOILER.auto_feeder_off.address] = 1
+    holdings[buffer(1).ignition_difference.address] = 0xFFFF
+    server = FakeLambdatronic(inputs, holdings)
+    address = await server.start()
+    try:
+        async with client_for(address) as client:
+            parameters = await client.read_parameters(Equipment((), (), (1,)))
+        assert parameters.pellet_filling_start_1 is None
+        assert parameters.pellet_filling_start_2 is None
+        assert parameters.auto_feeder_off is True
+        assert parameters.circulation_pump_off_above is None
+        assert parameters.buffers[1] == BufferParameters(30.0, None)
+    finally:
+        await server.stop()
+
+
+async def test_write_filling_start_as_minutes(fake: FakeLambdatronic, fake_address: tuple[str, int]) -> None:
+    async with client_for(fake_address) as client:
+        assert await client.write(BOILER.pellet_filling_start_1, 630) == 630
+        assert await client.write(heating_circuit(1).heating_limit, -5) == -5
+    assert fake.holding_registers[BOILER.pellet_filling_start_1.address] == 630
+    assert fake.holding_registers[heating_circuit(1).heating_limit.address] == 0x10000 - 10
 
 
 async def test_write_and_read_back(fake: FakeLambdatronic, fake_address: tuple[str, int]) -> None:
