@@ -143,7 +143,7 @@ class LambdatronicClient:
         for t in tanks.values():
             definitions += [t.temperature, t.pump]
         for b in buffers.values():
-            definitions += b.all()
+            definitions += [b.top, b.middle, b.bottom, b.pump]
         raw = await self._read_raw(definitions)
 
         def value(definition: RegisterDef) -> float | None:
@@ -160,7 +160,7 @@ class LambdatronicClient:
             residual_oxygen=value(BOILER.residual_oxygen),
             induced_draft_speed=value(BOILER.induced_draft_speed),
             return_temperature=value(BOILER.return_temperature),
-            boiler_output=value(BOILER.boiler_output),
+            boiler_output=value(BOILER.boiler_control_output),
             operating_hours=value(BOILER.operating_hours),
             pellet_hopper_level=value(BOILER.pellet_hopper_level),
             burner_starts=value(BOILER.burner_starts),
