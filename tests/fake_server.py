@@ -45,6 +45,8 @@ class FakeLambdatronic:
         self.illegal_function_on_write = False
         self.reject_write: set[int] = set()
         self.ignore_write: set[int] = set()
+        # Holding register addresses a boiler without the matching equipment answers with 0x02.
+        self.illegal_holding: set[int] = set()
         self.connections = 0
         self._server: asyncio.Server | None = None
         self._writers: list[asyncio.StreamWriter] = []
@@ -111,6 +113,8 @@ class FakeLambdatronic:
             if value > 122:
                 return bytes([function | 0x80, 0x03])
             if not _valid(ranges, address, value):
+                return bytes([function | 0x80, 0x02])
+            if function == 3 and self.illegal_holding & set(range(address, address + value)):
                 return bytes([function | 0x80, 0x02])
             data = [registers.get(address + i, 0xFFFF) for i in range(value)]
             return bytes([function, 2 * value]) + struct.pack(f">{value}H", *data)

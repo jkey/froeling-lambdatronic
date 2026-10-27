@@ -15,6 +15,7 @@ from .exceptions import (
 from .modbus.client import ModbusTcpClient
 from .modbus.exceptions import (
     DeviceFailureError,
+    IllegalAddressError,
     IllegalFunctionError,
     IllegalValueError,
     ModbusConnectionError,
@@ -126,7 +127,6 @@ class LambdatronicClient:
         definitions += [t.temperature for t in tanks]
         for b in buffers:
             definitions += [b.top, b.bottom]
-        definitions.append(CIRCULATION.pump_off_above)
         raw = await self._read_raw(definitions, max_gap=2)
 
         def present(*defs: RegisterDef) -> bool:
@@ -138,9 +138,19 @@ class LambdatronicClient:
             ),
             hot_water=tuple(t.number for t in tanks if present(t.temperature)),
             buffers=tuple(b.number for b in buffers if present(b.top, b.bottom)),
-            # An undocumented register answers 0xFFFF; 40601 exists only with a circulation pump.
-            circulation_pump=raw[CIRCULATION.pump_off_above.number] != 0xFFFF,
+            circulation_pump=await self._has_circulation_pump(),
         )
+
+    async def _has_circulation_pump(self) -> bool:
+        """40601 exists only with a circulation pump: 0xFFFF or Illegal Data Address means none."""
+        register = CIRCULATION.pump_off_above
+        try:
+            values = await self._modbus.read_holding_registers(self._slave, register.address, 1)
+        except IllegalAddressError:
+            return False
+        except ModbusError as err:
+            raise self._map(err) from err
+        return values[0] != 0xFFFF
 
     async def read_values(self, equipment: Equipment) -> LambdatronicValues:
         """Read all current values for the given equipment."""

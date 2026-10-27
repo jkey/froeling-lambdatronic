@@ -16,6 +16,7 @@ from froeling_lambdatronic.exceptions import (
     ValueOutOfRangeError,
     WriteRejectedError,
 )
+from froeling_lambdatronic.modbus.exceptions import DeviceFailureError
 from froeling_lambdatronic.models import BufferParameters, CirculationValues, Equipment
 from froeling_lambdatronic.registers import (
     BOILER,
@@ -57,6 +58,33 @@ async def test_detect_equipment_without_circulation_pump(snapshot: dict[str, int
         assert equipment.heating_circuits == (1, 2)
     finally:
         await server.stop()
+
+
+async def test_detect_equipment_circulation_register_illegal_address(
+    fake: FakeLambdatronic, fake_address: tuple[str, int]
+) -> None:
+    fake.illegal_holding.add(CIRCULATION.pump_off_above.address)
+    async with client_for(fake_address) as client:
+        equipment = await client.detect_equipment()
+    assert equipment == Equipment(
+        heating_circuits=(1, 2), hot_water=(1,), buffers=(1,), circulation_pump=False
+    )
+
+
+async def test_detect_equipment_circulation_register_other_errors_propagate(
+    fake_address: tuple[str, int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async with client_for(fake_address) as client:
+        original = client._modbus.read_holding_registers
+
+        async def failing(slave: int, start: int, count: int) -> list[int]:
+            if start == CIRCULATION.pump_off_above.address:
+                raise DeviceFailureError(3)
+            return await original(slave, start, count)
+
+        monkeypatch.setattr(client._modbus, "read_holding_registers", failing)
+        with pytest.raises(CommunicationError):
+            await client.detect_equipment()
 
 
 async def test_read_values(fake_address: tuple[str, int], snapshot: dict[str, int]) -> None:
