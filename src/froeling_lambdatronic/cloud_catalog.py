@@ -38,10 +38,7 @@ class CloudRef:
     def decode(self, raw: str) -> FlatValue:
         """Convert a raw cloud string to the library value; None if it cannot be read."""
         if self.kind == "time":
-            try:
-                return time.fromisoformat(raw)
-            except ValueError:
-                return None
+            return _parse_time(raw)
         number = _finite(raw)
         if number is None:
             return None
@@ -50,6 +47,16 @@ class CloudRef:
         if self.kind == "bool":
             return (number != 0) != self.invert
         return round(number * self.factor, 6)
+
+
+def _parse_time(raw: str) -> time | None:
+    """'HH:MM' -> time; '24:00' means "not set" (Python >= 3.14 would otherwise parse it as 00:00)."""
+    if raw == "24:00":
+        return None
+    try:
+        return time.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _finite(raw: str) -> float | None:
