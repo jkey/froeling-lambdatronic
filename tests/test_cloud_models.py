@@ -86,7 +86,7 @@ def test_parse_component_list() -> None:
         raw_type="CIRCUIT",
         number=2,
         standard_name="Heizkreis 02",
-        display_name="Heizkreis 02",
+        display_name="Heizkreis 01",
     )
 
 

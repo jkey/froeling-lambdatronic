@@ -1,6 +1,6 @@
 {
  "componentId": "200_2100",
- "displayName": "Brauchwasser",
+ "displayName": "Boiler 01",
  "displayCategory": "Boiler",
  "componentNumber": 1,
  "type": "DHW",

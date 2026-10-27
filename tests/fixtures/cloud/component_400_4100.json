@@ -1,6 +1,6 @@
 {
  "componentId": "400_4100",
- "displayName": "Pufferspeicher",
+ "displayName": "Puffer 01",
  "displayCategory": "Puffer",
  "componentNumber": 1,
  "type": "BUFFER_TANK",

@@ -48,7 +48,7 @@
    "componentId": "300_3100",
    "componentNumber": 1,
    "displayCategory": "Heizkreis 01",
-   "displayName": "Heizkreis 01",
+   "displayName": "Heizkreis 02",
    "subType": "OUT_TEMP_CRTL",
    "type": "CIRCUIT",
    "heatingPhase": [
@@ -156,7 +156,7 @@
    "componentId": "300_3110",
    "componentNumber": 2,
    "displayCategory": "Heizkreis 02",
-   "displayName": "Heizkreis 02",
+   "displayName": "Heizkreis 01",
    "subType": "OUT_TEMP_CRTL",
    "type": "CIRCUIT",
    "heatingPhase": [
@@ -264,7 +264,7 @@
    "componentId": "200_2100",
    "componentNumber": 1,
    "displayCategory": "Boiler 01",
-   "displayName": "Brauchwasser",
+   "displayName": "Boiler 01",
    "type": "DHW",
    "heatingPhase": [
     {
@@ -371,7 +371,7 @@
    "componentId": "400_4100",
    "componentNumber": 1,
    "displayCategory": "Puffer 01",
-   "displayName": "Pufferspeicher",
+   "displayName": "Puffer 01",
    "subType": "TWO_SENSORS",
    "svgUrl": "https://connect-api.froeling.com/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de&componentType=buffer&bufferTempTop=63%C2%B0C&bufferTempBottom=46%C2%B0C&bufferTankChargeDiscrete=3&componentVariant=two_sensors_facility_overview",
    "type": "BUFFER_TANK",
