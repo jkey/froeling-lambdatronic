@@ -22,4 +22,4 @@ async def main(host: str) -> None:
         print("No-op-Schreiben ok, zurückgelesen:", read_back)
 
 
-asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "192.168.70.18"))
+asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "192.168.1.50"))
