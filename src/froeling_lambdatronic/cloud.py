@@ -5,6 +5,7 @@ import binascii
 import json
 import logging
 import math
+import re
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import time
@@ -56,6 +57,9 @@ _FCS = "/fcs/v1.0/resources/user/{user_id}/facility/{facility_id}"
 # Marker in the per-call set of fresh data: the component list was fetched during this call.
 _COMPONENT_LIST = "componentList"
 _TIMEOUT = aiohttp.ClientTimeout(total=20)
+# User and facility id in a URL path; error texts carry the placeholders instead of the ids.
+_ID_SEGMENTS = re.compile(r"/(user|facility)/[^/?#\s'\"]+")
+_ID_PLACEHOLDERS = {"user": "/user/{user_id}", "facility": "/facility/{facility_id}"}
 _LOGGER = logging.getLogger("froeling_lambdatronic.cloud")
 
 
@@ -199,7 +203,7 @@ class FroelingConnectClient:
             except _LoginError:
                 raise  # a failed login or token renewal is no unreadable detail
             except (CommunicationError, _NotFoundError) as err:
-                # Only the component id is logged: the error text carries the URL with user and facility id.
+                # Only the component id and the error type are logged.
                 _LOGGER.warning(
                     "Skipping the detail of component %s: %s", component.component_id, type(err).__name__
                 )
@@ -380,9 +384,11 @@ class FroelingConnectClient:
                     json=json_body,
                 ) as response:
                     if response.status != HTTPStatus.UNAUTHORIZED:
-                        return await self._handle_response(method, url, response)
+                        return await self._handle_response(method, url_template, response)
             except (aiohttp.ClientError, TimeoutError, ValueError) as err:  # JSON and text decoding errors
-                raise ConnectionFailedError(f"Fröling Connect request failed: {err}") from err
+                raise ConnectionFailedError(
+                    f"Fröling Connect request {method} {url_template} failed: {_without_ids(str(err))}"
+                ) from err
             # 401: renew the token once, outside the closed response context.
             if attempt == 0:
                 await self.login()
@@ -390,6 +396,7 @@ class FroelingConnectClient:
 
     @staticmethod
     async def _handle_response(method: str, url: str, response: aiohttp.ClientResponse) -> Any:  # noqa: ANN401 - JSON payloads are untyped
+        # `url` is the template with the placeholders {user_id} and {facility_id}, never the real ids.
         if response.status == HTTPStatus.NOT_MODIFIED:
             # Fröling Connect answers an unchanged write with 304; a read must carry data.
             if method in ("PUT", "POST"):
@@ -410,6 +417,11 @@ class _LoginError(CommunicationError):
 
 class _NotFoundError(ConnectionFailedError):
     """HTTP 404; lets set_value reload a stale parameter id."""
+
+
+def _without_ids(text: str) -> str:
+    """Replace user and facility ids in URL paths of an error text by their placeholders."""
+    return _ID_SEGMENTS.sub(lambda match: _ID_PLACEHOLDERS[match.group(1)], text)
 
 
 def _rate_limited(response: aiohttp.ClientResponse) -> RateLimitedError:

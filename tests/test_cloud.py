@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, time
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
 import aiohttp
 import pytest
@@ -335,6 +335,65 @@ async def test_not_modified_on_get_is_communication_error(env: Env) -> None:
     env.state.add("GET", FACILITIES, Reply(status=304))
     with pytest.raises(CommunicationError):
         await env.client().get_facilities()
+
+
+def assert_without_ids(err: BaseException) -> None:
+    text = str(err)
+    assert f"/{USER}" not in text, text
+    assert f"/{FACILITY}" not in text, text
+
+
+@pytest.mark.parametrize(
+    ("status", "error"),
+    [(502, ConnectionFailedError), (404, ConnectionFailedError), (304, CommunicationError)],
+)
+async def test_failed_get_names_the_url_template(env: Env, status: int, error: type[Exception]) -> None:
+    login_ok(env.state)
+    env.state.add("GET", OVERVIEW, Reply(status=status))
+    with pytest.raises(error) as caught:
+        await env.client().get_overview(FACILITY)
+    assert_without_ids(caught.value)
+    assert "/user/{user_id}/facility/{facility_id}/overview" in str(caught.value)
+
+
+async def test_failed_put_and_post_name_the_url_template(env: Env) -> None:
+    login_ok(env.state)
+    env.state.add("GET", COMPONENTS, Reply(payload=COMPONENT_LIST))
+    env.state.add("GET", COMPONENT, Reply(payload=component("2", "1")))
+    env.state.add("PUT", PARAMETER, Reply(status=500))
+    client = env.client()
+    with pytest.raises(ConnectionFailedError) as put:
+        await client.set_operating_mode(FACILITY, OperatingMode.AUTOMATIC)
+    assert_without_ids(put.value)
+    assert "PUT /fcs/v1.0/resources/user/{user_id}/facility/{facility_id}/parameter/100011_9963" in str(
+        put.value
+    )
+    serve_list(env.state)
+    serve_detail(env.state, "300_3110")
+    serve_detail(env.state, "1_100")
+    env.state.add("POST", TIME_WINDOWS, Reply(status=500))
+    with pytest.raises(ConnectionFailedError) as post:
+        await client.set_schedule(FACILITY, "hc2", {Weekday.SUNDAY: []})
+    assert_without_ids(post.value)
+    assert "POST /fcs/v1.0/resources/user/{user_id}/facility/{facility_id}/timeWindows" in str(post.value)
+
+
+@pytest.mark.parametrize("method", ["GET", "PUT", "POST"])
+async def test_transport_error_text_carries_no_ids(
+    env: Env, monkeypatch: pytest.MonkeyPatch, method: str
+) -> None:
+    login_ok(env.state)
+    client = env.client()
+    await client.login()
+
+    def broken(method: str, url: str, **kwargs: Any) -> NoReturn:
+        raise aiohttp.InvalidURL(url)  # aiohttp errors may quote the full URL
+
+    monkeypatch.setattr(env.session, "request", broken)
+    with pytest.raises(ConnectionFailedError) as caught:
+        await client._request(method, cloud._FCS + "/timeWindows", facility_id=FACILITY, json_body=[])
+    assert_without_ids(caught.value)
+    assert "/user/{user_id}/facility/{facility_id}/timeWindows" in str(caught.value)
 
 
 @pytest.mark.parametrize(
