@@ -647,6 +647,7 @@ async def test_read_snapshot_aborts_on_timeout(env: Env, monkeypatch: pytest.Mon
     [
         ("hc1_curve_flow_plus10", 47, ("300_3100", "7_88"), "47"),
         ("hc2_heating_limit", -2.5, ("300_3110", "7_94"), "-2.5"),
+        ("hc1_pump_off_below_flow_setpoint", 25, ("300_3100", "7_76"), "25"),
         ("hc1_operating_mode", 3, ("300_3100", "9_9989"), "3"),
         ("pellet_stock", 4.5, ("1_906", "7_1121"), "4.5"),
         ("pellet_filling_start_2", time(21, 30), ("1_906", "10_516"), "21:30"),
@@ -688,6 +689,8 @@ async def test_set_value_on_boiler_and_inverted_bool(env: Env) -> None:
     [
         ("hc1_curve_flow_plus10", 111, ValueOutOfRangeError),
         ("hc1_curve_flow_plus10", float("nan"), ValueOutOfRangeError),
+        ("hc1_pump_off_below_flow_setpoint", 31, ValueOutOfRangeError),
+        ("hc1_pump_off_below_flow_setpoint", 9.5, ValueOutOfRangeError),
         ("hc1_operating_mode", 6, ValueOutOfRangeError),
         ("hc1_flow_temperature", 40, WriteRejectedError),
         ("hc1_curve_flow_plus10", time(10, 0), TypeError),

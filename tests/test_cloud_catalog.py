@@ -99,8 +99,12 @@ def test_catalogue_entries() -> None:
     assert CLOUD_REFS["boiler_on"] == CloudRef(ComponentType.BOILER, "boilerOn", "bool", invert=True)
     assert CLOUD_REFS["hc{n}_operating_mode"] == CloudRef(ComponentType.CIRCUIT, "mode", "choice")
     assert CLOUD_REFS["pellet_filling_start_2"].kind == "time"
+    # Despite its name, desiredRoomTemp is "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist als".
+    assert CLOUD_REFS["hc{n}_pump_off_below_flow_setpoint"] == CloudRef(
+        ComponentType.CIRCUIT, "desiredRoomTemp", "number"
+    )
     names = {ref.name for ref in CLOUD_REFS.values()}
-    assert not names & {"desiredRoomTemp", "bufferTankChargeDiskret", "editable"}
+    assert not names & {"bufferTankChargeDiskret", "editable"}
     # One cloud parameter belongs to exactly one key.
     pairs = [(ref.component, ref.name) for ref in CLOUD_REFS.values()]
     assert len(pairs) == len(set(pairs))
@@ -116,6 +120,7 @@ def test_catalogue_entries() -> None:
         ("buffer3_top", "buffer{n}_top", 3),
         ("circulation_pump", "circulation_pump", 1),
         ("hc1_pump", "hc{n}_pump", 1),
+        ("hc2_pump_off_below_flow_setpoint", "hc{n}_pump_off_below_flow_setpoint", 2),
         ("pellet_counter", "pellet_counter", 1),
         (
             "buffer1_ignition_below_buffer_temperature",
@@ -195,7 +200,9 @@ def test_snapshot_from_overview() -> None:
         "hc1_operating_mode": 1,
         "hc1_flow_temperature": 44.0,
         "hc1_pump": True,
+        "hc1_pump_off_below_flow_setpoint": 20.0,
         "hc2_flow_temperature": 28.0,
+        "hc2_pump_off_below_flow_setpoint": 20.0,
         "dhw1_mode": 1,
         "dhw1_setpoint": 55.0,
         "dhw1_pump": 100.0,
@@ -245,6 +252,7 @@ def test_snapshot_with_details() -> None:
     assert snapshot.value("reset_ash_counter") is False
     assert snapshot.value("remote_control_allowed") is True
     assert snapshot.value("hc2_curve_flow_plus10") == 29.0
+    assert snapshot.value("hc1_pump_off_below_flow_setpoint") == 20.0
     assert snapshot.value("hc1_heating_limit_setback") == 7.0
     assert snapshot.value("hc1_frost_protection") == 10.0
     assert snapshot.value("hc2_buffer_overheat_protection") == 120.0

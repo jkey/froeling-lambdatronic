@@ -77,8 +77,8 @@ _CIRCULATION = ComponentType.CIRCULATION_PUMP
 
 # Key templates as in LambdatronicValues.flat() / LambdatronicParameters.flat(); "{n}" is the component
 # number. Evidence: abgleich.md sections 1/2 (category A = identical) and 8 (B derived, C1 newly documented
-# registers, C2/D cloud only). Not included: desiredRoomTemp (41036 or 41040, unresolved),
-# bufferTankChargeDiskret (picture level), editable (meta flag), tonsCounter/kgCounter (see pellet_counter).
+# registers, C2/D cloud only). Not included: bufferTankChargeDiskret (picture level), editable (meta flag),
+# tonsCounter/kgCounter (see pellet_counter).
 CLOUD_REFS: Mapping[str, CloudRef] = {
     # Boiler (component 1_100).
     "boiler_temperature": CloudRef(_BOILER, "boilerTemp", "number"),  # A: 30001
@@ -109,6 +109,9 @@ CLOUD_REFS: Mapping[str, CloudRef] = {
     "hc{n}_heating_limit": CloudRef(_CIRCUIT, "circuitPumpOnOutAirTempLimitHeating", "number"),  # A: 41037
     "hc{n}_heating_limit_setback": CloudRef(_CIRCUIT, "circuitPumpOnOutAirTempLimitSetback", "number"),  # A
     "hc{n}_frost_protection": CloudRef(_CIRCUIT, "frostProtectionTemp", "number"),  # C1: 41039
+    # B: 41040, despite its name: displayName "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist als",
+    # cloud range 10..30 °C as the register; there is no room setpoint (41036) in Fröling Connect.
+    "hc{n}_pump_off_below_flow_setpoint": CloudRef(_CIRCUIT, "desiredRoomTemp", "number"),
     "hc{n}_buffer_overheat_protection": CloudRef(_CIRCUIT, "bufferOverheatingProtection", "number"),  # C1
     "hc{n}_pump": CloudRef(_CIRCUIT, "circuitPumpControl", "bool"),  # C2: coil 1000 + 30·n unresolved
     # Hot water tanks.
