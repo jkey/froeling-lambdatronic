@@ -73,6 +73,7 @@ from .registers import (
 )
 from .texts import (
     BOILER_STATES,
+    FAULT_BOILER_STATES,
     HEATING_CIRCUIT_MODES,
     SYSTEM_STATES,
     boiler_state_text,
@@ -88,6 +89,7 @@ __all__ = [
     "CIRCULATION",
     "CLOUD_REFS",
     "ERROR_SLOTS",
+    "FAULT_BOILER_STATES",
     "HEATING_CIRCUIT_MODES",
     "MAX_PHASES_PER_DAY",
     "SYSTEM_STATES",

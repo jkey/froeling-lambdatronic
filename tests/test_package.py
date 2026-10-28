@@ -84,6 +84,8 @@ def test_public_api() -> None:
         "equipment_from_components",
         "merge_equipment",
         "RateLimitedError",
+        # 0.2.0b2
+        "FAULT_BOILER_STATES",
     }
     assert set(froeling_lambdatronic.__all__) == expected
     assert len(froeling_lambdatronic.__all__) == len(expected)
