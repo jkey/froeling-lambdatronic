@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
+from urllib.parse import parse_qs, urlsplit
 
 from .exceptions import CommunicationError
 from .models import MINUTES_PER_DAY
@@ -16,6 +17,9 @@ _LOGGER = logging.getLogger("froeling_lambdatronic.cloud")
 
 # Fröling Connect accepts at most four phases per day for Lambdatronic 3200 (GEN_3200).
 MAX_PHASES_PER_DAY = 4
+
+# Heating circuit sub type that is controlled by the outside temperature only (no room sensor).
+_OUTSIDE_TEMPERATURE_CONTROL = "OUT_TEMP_CRTL"
 
 # Views of a component detail in ascending priority: a later view wins for the same parameter name.
 _VIEW_PRIORITY = ("stateView", "topView", "setupView")
@@ -81,7 +85,13 @@ _COMPONENT_KEYS = {
 
 @dataclass(frozen=True, slots=True)
 class CloudComponent:
-    """A component of the facility; `number` matches the Modbus numbering (heating circuit 2 = 2)."""
+    """A component of the facility; `number` matches the Modbus numbering (heating circuit 2 = 2).
+
+    `sub_type` is the raw sub type of the API (e.g. 'PELLET', 'OUT_TEMP_CRTL'). `room_sensor` tells for a
+    heating circuit whether a room sensor is connected: taken from `isRoomSensorAvailable` of the picture
+    URL of a component detail, otherwise False for sub type 'OUT_TEMP_CRTL'; None if unknown or not a
+    heating circuit.
+    """
 
     component_id: str
     type: ComponentType | None
@@ -89,6 +99,8 @@ class CloudComponent:
     number: int
     standard_name: str
     display_name: str
+    sub_type: str | None = None
+    room_sensor: bool | None = None
 
     @property
     def key(self) -> str | None:
@@ -313,6 +325,8 @@ def _component(item: Any) -> CloudComponent:  # noqa: ANN401 - untyped JSON
         component_type = None
     # The overview carries the standard name ("Heizkreis 01") as displayCategory.
     standard_name = item.get("standardName") or item.get("displayCategory") or ""
+    sub_type = item.get("subType")
+    sub_type = sub_type if isinstance(sub_type, str) else None
     return CloudComponent(
         component_id=component_id,
         type=component_type,
@@ -320,7 +334,35 @@ def _component(item: Any) -> CloudComponent:  # noqa: ANN401 - untyped JSON
         number=number,
         standard_name=str(standard_name),
         display_name=str(item.get("displayName") or ""),
+        sub_type=sub_type,
+        room_sensor=_room_sensor(item, sub_type) if component_type is ComponentType.CIRCUIT else None,
     )
+
+
+def _room_sensor(item: dict[str, Any], sub_type: str | None) -> bool | None:
+    """Room sensor of a heating circuit: explicit URL flag, else False for OUT_TEMP_CRTL, else unknown."""
+    top_view = item.get("topView")
+    flag = (
+        _picture_flag(top_view.get("pictureUrl"), "isRoomSensorAvailable")
+        if isinstance(top_view, dict)
+        else None
+    )
+    if flag is not None:
+        return flag
+    return False if sub_type == _OUTSIDE_TEMPERATURE_CONTROL else None
+
+
+def _picture_flag(url: Any, name: str) -> bool | None:  # noqa: ANN401 - untyped JSON
+    """A 'true'/'false' query parameter of a picture URL; None if missing, ambiguous or unreadable."""
+    if not isinstance(url, str):
+        return None
+    try:
+        values = parse_qs(urlsplit(url).query).get(name, [])
+    except ValueError:
+        return None
+    if len(values) != 1:
+        return None
+    return {"true": True, "false": False}.get(values[0].strip().lower())
 
 
 def _view_parameters(view: Any, name: str) -> list[Any]:  # noqa: ANN401 - untyped JSON

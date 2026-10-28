@@ -214,6 +214,7 @@ def test_snapshot_from_overview() -> None:
         assert snapshot.value(key) == value, key
     assert snapshot.value("hc1_curve_flow_plus10") is None
     assert snapshot.value("unknown") is None
+    assert snapshot.room_sensors == {"hc1": False, "hc2": False}
     assert set(snapshot.values) == set(expected) | {"hc2_operating_mode", "hc2_pump"}
     assert set(snapshot.schedules) == {"hc1", "hc2", "dhw1", "buffer1", "circulation"}
     assert snapshot.schedules["circulation"][Weekday.MONDAY] == (
@@ -268,6 +269,49 @@ def test_snapshot_keeps_components_only_in_details_and_skips_unknown_types() -> 
     assert [c.raw_type for c in snapshot.components] == ["SOLAR", "FEED_SYSTEM"]
     assert snapshot.value("pellet_stock") == 4.5
     assert snapshot.value("outside_temperature") is None
+
+
+def test_snapshot_room_sensors_prefer_known_values_of_later_sources() -> None:
+    def circuit(number: int, sub_type: str | None, url_flag: str | None = None) -> dict[str, Any]:
+        item: dict[str, Any] = {
+            "componentId": f"300_31{number}0",
+            "componentNumber": number,
+            "type": "CIRCUIT",
+        }
+        if sub_type is not None:
+            item["subType"] = sub_type
+        if url_flag is not None:
+            item["topView"] = {"pictureUrl": f"https://example.invalid/p?isRoomSensorAvailable={url_flag}"}
+        return item
+
+    overview = parse_overview(
+        {
+            "components": [
+                circuit(1, "OUT_TEMP_CRTL"),
+                circuit(2, "ROOM_TEMP_CRTL"),
+                circuit(3, "OUT_TEMP_CRTL"),
+                {"componentId": "1_100", "componentNumber": 1, "type": "BOILER", "subType": "PELLET"},
+            ]
+        }
+    )
+    details = [
+        parse_component_detail(circuit(1, "OUT_TEMP_CRTL", "true")),
+        parse_component_detail(circuit(2, "ROOM_TEMP_CRTL", "false")),
+        parse_component_detail(circuit(3, "ROOM_TEMP_CRTL")),  # unknown does not hide a known value
+        parse_component_detail(circuit(4, None, "true")),  # only in the details
+    ]
+    assert build_snapshot(overview).room_sensors == {"hc1": False, "hc2": None, "hc3": False}
+    assert build_snapshot(overview, details).room_sensors == {
+        "hc1": True,
+        "hc2": False,
+        "hc3": False,
+        "hc4": True,
+    }
+
+
+def test_snapshot_room_sensors_with_fixture_details() -> None:
+    snapshot = build_snapshot(parse_overview(load("overview.json")), _details())
+    assert snapshot.room_sensors == {"hc1": False, "hc2": False}
 
 
 def _component(kind: ComponentType | None, number: int, raw: str = "") -> CloudComponent:

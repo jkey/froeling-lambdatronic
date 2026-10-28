@@ -128,6 +128,10 @@ replaces only the given days; the request still carries all seven days, the othe
 current phases. A day has at most four phases in minutes after midnight (end 1440 = 24:00). If a
 day that is not replaced contains a phase the library cannot read, nothing is written
 (`CommunicationError`) so that phase is not lost.
+`CloudComponent.room_sensor` (and `CloudSnapshot.room_sensors`, e.g. `{"hc1": False}`) tells whether a
+heating circuit has a room sensor: `True`/`False` from the component detail, `False` for the
+outside-temperature controlled sub type `OUT_TEMP_CRTL` even without details, `None` if unknown.
+Modbus cannot tell: without a sensor the room temperature register reads a constant value.
 `CLOUD_REFS` documents which key maps to which Fröling Connect parameter; `merge_equipment()`
 compares the equipment detected via Modbus with the cloud components. System information never
 contains the address, contacts or pairing code of the facility.

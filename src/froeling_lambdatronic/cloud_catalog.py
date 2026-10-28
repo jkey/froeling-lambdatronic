@@ -1,5 +1,6 @@
 """Mapping of Fröling Connect parameters to the value keys of the Modbus models, and the cloud snapshot."""
 
+import dataclasses
 import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
@@ -163,12 +164,17 @@ def cloud_ref(key: str) -> tuple[CloudRef, int] | None:
 
 @dataclass(frozen=True, slots=True)
 class CloudSnapshot:
-    """Values read from Fröling Connect under the same full keys as the Modbus models."""
+    """Values read from Fröling Connect under the same full keys as the Modbus models.
+
+    `room_sensors` maps every heating circuit key ('hc1', ...) to `CloudComponent.room_sensor`; a known
+    value of a component detail wins over the overview, an unknown one never hides a known one.
+    """
 
     components: tuple[CloudComponent, ...]
     values: Mapping[str, FlatValue]
     schedules: Mapping[str, Mapping[Weekday, tuple[Phase, ...]]]
     details_loaded: bool
+    room_sensors: Mapping[str, bool | None] = dataclasses.field(default_factory=dict)
 
     def value(self, key: str) -> FlatValue:
         """Converted value of a key; None if Fröling Connect did not report it."""
@@ -180,6 +186,7 @@ def build_snapshot(overview: CloudOverview, details: Sequence[CloudComponentDeta
     components: dict[str, CloudComponent] = {}
     values: dict[str, FlatValue] = {}
     schedules: dict[str, Mapping[Weekday, tuple[Phase, ...]]] = {}
+    room_sensors: dict[str, bool | None] = {}
     if overview.outside_temperature is not None:
         values["outside_temperature"] = CLOUD_REFS["outside_temperature"].decode(overview.outside_temperature)
     sources = [(c.component, c.values, c.schedule) for c in overview.components]
@@ -193,7 +200,13 @@ def build_snapshot(overview: CloudOverview, details: Sequence[CloudComponentDeta
         values.update(_values(component, raw_values))
         if schedule:
             schedules[component.key] = schedule
-    return CloudSnapshot(tuple(components.values()), values, schedules, details_loaded=bool(details))
+        if component.type is _CIRCUIT and (
+            component.room_sensor is not None or component.key not in room_sensors
+        ):
+            room_sensors[component.key] = component.room_sensor
+    return CloudSnapshot(
+        tuple(components.values()), values, schedules, details_loaded=bool(details), room_sensors=room_sensors
+    )
 
 
 def _values(component: CloudComponent, raw_values: Mapping[str, str]) -> dict[str, FlatValue]:

@@ -87,7 +87,19 @@ def test_parse_component_list() -> None:
         number=2,
         standard_name="Heizkreis 02",
         display_name="Heizkreis 02",
+        sub_type="OUT_TEMP_CRTL",
+        room_sensor=False,
     )
+    # The list has no picture URL: the sub type alone says "no room sensor" for a circuit.
+    assert [(c.sub_type, c.room_sensor) for c in components] == [
+        ("PELLET", None),
+        ("OUT_TEMP_CRTL", False),
+        ("OUT_TEMP_CRTL", False),
+        (None, None),
+        ("TWO_SENSORS", None),
+        (None, None),
+        (None, None),
+    ]
 
 
 def test_unknown_component_type_is_kept() -> None:
@@ -115,6 +127,70 @@ def test_unknown_component_type_is_kept() -> None:
 def test_malformed_component_list(payload: Any) -> None:
     with pytest.raises(CommunicationError):
         parse_component_list(payload)
+
+
+def _circuit(sub_type: Any = None, picture_url: Any = None, *, top_view: Any = None) -> dict[str, Any]:
+    item: dict[str, Any] = {"componentId": "300_3100", "componentNumber": 1, "type": "CIRCUIT"}
+    if sub_type is not None:
+        item["subType"] = sub_type
+    if picture_url is not None:
+        item["topView"] = {"pictureUrl": picture_url}
+    if top_view is not None:
+        item["topView"] = top_view
+    return item
+
+
+_PICTURE = "https://connect-api.example/ctvps/v1.0/resources/service/componentTopViewPicture?lang=de"
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        # The explicit URL parameter wins over the sub type.
+        (_circuit("OUT_TEMP_CRTL", _PICTURE + "&roomTemp=21%C2%B0C&isRoomSensorAvailable=true"), True),
+        (_circuit("ROOM_TEMP_CRTL", _PICTURE + "&roomTemp=-&isRoomSensorAvailable=false"), False),
+        (_circuit(None, _PICTURE + "&isRoomSensorAvailable=TRUE"), True),
+        (_circuit(None, _PICTURE + "&isRoomSensorAvailable=False"), False),
+        # Without the parameter only OUT_TEMP_CRTL is known to mean "no room sensor".
+        (_circuit("OUT_TEMP_CRTL"), False),
+        (_circuit("OUT_TEMP_CRTL", _PICTURE + "&roomTemp=-"), False),
+        (_circuit("ROOM_TEMP_CRTL"), None),
+        (_circuit(), None),
+        # Unreadable URLs or parameters count as missing.
+        (_circuit("OUT_TEMP_CRTL", _PICTURE + "&isRoomSensorAvailable=maybe"), False),
+        (_circuit(None, _PICTURE + "&isRoomSensorAvailable=maybe"), None),
+        (_circuit(None, _PICTURE + "&isRoomSensorAvailable=true&isRoomSensorAvailable=false"), None),
+        (_circuit(None, 42), None),
+        (_circuit(None, "http://[::1/broken?isRoomSensorAvailable=true"), None),
+        (_circuit(None, top_view=["not", "an", "object"]), None),
+        (_circuit(None, top_view={"pictureUrl": None}), None),
+        (_circuit(7), None),
+    ],
+)
+def test_room_sensor_of_circuits(item: dict[str, Any], expected: bool | None) -> None:
+    (component,) = parse_component_list([item])
+    assert component.room_sensor is expected
+    assert component.sub_type == (item["subType"] if isinstance(item.get("subType"), str) else None)
+
+
+def test_room_sensor_is_only_reported_for_circuits() -> None:
+    boiler = _circuit("OUT_TEMP_CRTL", _PICTURE + "&isRoomSensorAvailable=true") | {"type": "BOILER"}
+    (component,) = parse_component_list([boiler])
+    assert component.sub_type == "OUT_TEMP_CRTL"
+    assert component.room_sensor is None
+
+
+def test_room_sensor_of_detail_and_overview() -> None:
+    detail = parse_component_detail(load("component_300_3110.json"))
+    assert (detail.component.sub_type, detail.component.room_sensor) == ("OUT_TEMP_CRTL", False)
+    boiler = parse_component_detail(load("component_1_100.json"))
+    assert (boiler.component.sub_type, boiler.component.room_sensor) == ("PELLET", None)
+    overview = parse_overview(load("overview.json"))
+    assert [(c.component.sub_type, c.component.room_sensor) for c in overview.components[:3]] == [
+        ("PELLET", None),
+        ("OUT_TEMP_CRTL", False),
+        ("OUT_TEMP_CRTL", False),
+    ]
 
 
 def test_parse_component_detail_merges_views() -> None:
