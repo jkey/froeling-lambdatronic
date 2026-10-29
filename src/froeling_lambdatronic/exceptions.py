@@ -2,7 +2,12 @@
 
 
 class FroelingError(Exception):
-    """Base class for all errors of this library."""
+    """Base class for all errors of this library.
+
+    Errors of the Fröling Connect client carry no user or facility id in `str(err)`; they name the
+    URL template instead. `__cause__` can hold the raw aiohttp exception with the full URL
+    (including both ids): do not log or display `__cause__`, only `str(err)`.
+    """
 
 
 class ConnectionFailedError(FroelingError):

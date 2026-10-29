@@ -132,6 +132,8 @@ day that is not replaced contains a phase the library cannot read, nothing is wr
 heating circuit has a room sensor: `True`/`False` from the component detail, `False` for the
 outside-temperature controlled sub type `OUT_TEMP_CRTL` even without details, `None` if unknown.
 Modbus cannot tell: without a sensor the room temperature register reads a constant value.
+Only `str(err)` of a library error is free of the user and facility id. `err.__cause__` can hold
+the raw aiohttp exception with the full URL including both ids: do not log or display it.
 `CLOUD_REFS` documents which key maps to which Fröling Connect parameter; `merge_equipment()`
 compares the equipment detected via Modbus with the cloud components. System information never
 contains the address, contacts or pairing code of the facility.
