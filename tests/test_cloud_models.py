@@ -173,6 +173,25 @@ def test_room_sensor_of_circuits(item: dict[str, Any], expected: bool | None) ->
     assert component.sub_type == (item["subType"] if isinstance(item.get("subType"), str) else None)
 
 
+def test_room_sensor_rule_url_flag_true_beats_outside_temperature_control() -> None:
+    item = _circuit("OUT_TEMP_CRTL", _PICTURE + "&isRoomSensorAvailable=true")
+    assert parse_component_list([item])[0].room_sensor is True
+
+
+def test_room_sensor_rule_outside_temperature_control_without_flag_is_false() -> None:
+    assert parse_component_list([_circuit("OUT_TEMP_CRTL")])[0].room_sensor is False
+
+
+def test_room_sensor_rule_other_sub_type_without_flag_is_unknown() -> None:
+    assert parse_component_list([_circuit("ROOM_TEMP_CRTL")])[0].room_sensor is None
+
+
+def test_room_sensor_rule_url_flag_false_is_false_for_any_sub_type() -> None:
+    for sub_type in ("OUT_TEMP_CRTL", "ROOM_TEMP_CRTL", None):
+        item = _circuit(sub_type, _PICTURE + "&isRoomSensorAvailable=false")
+        assert parse_component_list([item])[0].room_sensor is False
+
+
 def test_room_sensor_is_only_reported_for_circuits() -> None:
     boiler = _circuit("OUT_TEMP_CRTL", _PICTURE + "&isRoomSensorAvailable=true") | {"type": "BOILER"}
     (component,) = parse_component_list([boiler])
