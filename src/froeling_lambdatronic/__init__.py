@@ -81,7 +81,7 @@ from .texts import (
     system_state_text,
 )
 
-__version__ = "0.2.0b2"
+__version__ = "0.2.0"
 
 __all__ = [
     "BOILER",

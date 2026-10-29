@@ -7,7 +7,7 @@ import froeling_lambdatronic
 
 
 def test_version_matches_metadata() -> None:
-    assert froeling_lambdatronic.__version__ == version("froeling-lambdatronic") == "0.2.0b2"
+    assert froeling_lambdatronic.__version__ == version("froeling-lambdatronic") == "0.2.0"
 
 
 def test_public_api() -> None:

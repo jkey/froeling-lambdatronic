@@ -149,18 +149,7 @@ Register documentation: Fröling "Kommunikationsprotokoll ModBus Lambdatronic 32
 
 ## Changelog
 
-### 0.2.0b2
-
-- `CloudComponent.sub_type` and `CloudComponent.room_sensor`, `CloudSnapshot.room_sensors`: whether a
-  heating circuit has a room sensor, as reported by Fröling Connect.
-- The Connect parameter `desiredRoomTemp` is "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist
-  als" (register 41040), not a room setpoint: it is now read and written as
-  `hcN_pump_off_below_flow_setpoint`.
-- Error messages of the Fröling Connect client no longer contain the user or facility id; they name
-  the URL template with `{user_id}` and `{facility_id}`.
-- `FAULT_BOILER_STATES` is exported from the package.
-
-### 0.2.0
+### 0.2.0 (2026-10-29)
 
 Breaking changes:
 
@@ -179,3 +168,14 @@ Breaking changes:
 New: the Modbus registers listed above, `flat()`, `register_for_key()`, `minutes_to_time()` /
 `time_to_minutes()`, and the Fröling Connect snapshot, writing, schedules, system information,
 header, error history and `RateLimitedError`; `Facility.equipment_number`.
+
+Since 0.2.0b1:
+
+- `CloudComponent.sub_type` and `CloudComponent.room_sensor`, `CloudSnapshot.room_sensors`: whether a
+  heating circuit has a room sensor, as reported by Fröling Connect.
+- The Connect parameter `desiredRoomTemp` is "Heizkreispumpe ausschalten wenn Vorlauf Soll kleiner ist
+  als" (register 41040), not a room setpoint: it is now read and written as
+  `hcN_pump_off_below_flow_setpoint`.
+- Error messages of the Fröling Connect client no longer contain the user or facility id; they name
+  the URL template with `{user_id}` and `{facility_id}`.
+- `FAULT_BOILER_STATES` is exported from the package.
