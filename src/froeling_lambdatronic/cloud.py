@@ -58,7 +58,8 @@ _FCS = "/fcs/v1.0/resources/user/{user_id}/facility/{facility_id}"
 _COMPONENT_LIST = "componentList"
 _TIMEOUT = aiohttp.ClientTimeout(total=20)
 # User and facility id in a URL path; error texts carry the placeholders instead of the ids.
-_ID_SEGMENTS = re.compile(r"/(user|facility)/[^/?#\s'\"]+")
+# The id ends on a character that is no sentence punctuation, so "...facility/123)." keeps ")." .
+_ID_SEGMENTS = re.compile(r"/(user|facility)/[^/?#\s'\"]*[^/?#\s'\".,;:!)\]]")
 _ID_PLACEHOLDERS = {"user": "/user/{user_id}", "facility": "/facility/{facility_id}"}
 _LOGGER = logging.getLogger("froeling_lambdatronic.cloud")
 
@@ -395,19 +396,19 @@ class FroelingConnectClient:
         raise AuthenticationError("token renewal did not help")
 
     @staticmethod
-    async def _handle_response(method: str, url: str, response: aiohttp.ClientResponse) -> Any:  # noqa: ANN401 - JSON payloads are untyped
-        # `url` is the template with the placeholders {user_id} and {facility_id}, never the real ids.
+    async def _handle_response(method: str, url_template: str, response: aiohttp.ClientResponse) -> Any:  # noqa: ANN401 - JSON payloads are untyped
+        # `url_template` has the placeholders {user_id} and {facility_id}, never the real ids.
         if response.status == HTTPStatus.NOT_MODIFIED:
             # Fröling Connect answers an unchanged write with 304; a read must carry data.
             if method in ("PUT", "POST"):
                 return None
-            raise CommunicationError(f"{method} {url} answered 304 without data")
+            raise CommunicationError(f"{method} {url_template} answered 304 without data")
         if response.status == HTTPStatus.TOO_MANY_REQUESTS:
             raise _rate_limited(response)
         if response.status == HTTPStatus.NOT_FOUND:
-            raise _NotFoundError(f"{method} {url} failed with HTTP 404")
+            raise _NotFoundError(f"{method} {url_template} failed with HTTP 404")
         if not HTTPStatus.OK <= response.status < HTTPStatus.MULTIPLE_CHOICES:
-            raise ConnectionFailedError(f"{method} {url} failed with HTTP {response.status}")
+            raise ConnectionFailedError(f"{method} {url_template} failed with HTTP {response.status}")
         return await response.json(content_type=None)
 
 

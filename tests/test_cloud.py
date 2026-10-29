@@ -378,6 +378,14 @@ async def test_failed_put_and_post_name_the_url_template(env: Env) -> None:
     assert "POST /fcs/v1.0/resources/user/{user_id}/facility/{facility_id}/timeWindows" in str(post.value)
 
 
+@pytest.mark.parametrize("punctuation", [".", ",", ")", ":", ";", "!", "]"])
+def test_without_ids_keeps_trailing_punctuation(punctuation: str) -> None:
+    text = f"cannot reach (/service/user/{USER}/facility/{FACILITY}{punctuation} next"
+    assert cloud._without_ids(text) == (
+        f"cannot reach (/service/user/{{user_id}}/facility/{{facility_id}}{punctuation} next"
+    )
+
+
 @pytest.mark.parametrize("method", ["GET", "PUT", "POST"])
 async def test_transport_error_text_carries_no_ids(
     env: Env, monkeypatch: pytest.MonkeyPatch, method: str
